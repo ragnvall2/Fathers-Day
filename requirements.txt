@@ -1,0 +1,30 @@
+# Family Timeline - Python Dependencies
+
+# Core py4web framework
+py4web>=1.20240906.1
+
+# Database layer
+pydal>=20240906.1
+
+# Web server
+gunicorn>=20.1.0
+
+# Additional utilities that py4web might need
+click>=8.0.0
+pluralize>=0.2.0
+pyjwt>=2.4.0
+python-multipart>=0.0.5
+watchdog>=2.1.0
+yatl>=20220218.1
+
+# For better JSON handling
+simplejson>=3.17.0
+
+# Image processing (for photo uploads)
+Pillow>=9.0.0
+
+# Optional: For better development experience
+ipython>=8.0.0
+
+# Optional: For deployment
+gevent>=21.0.0

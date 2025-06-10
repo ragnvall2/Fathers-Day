@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[[=family.family_name if family else "Family Memory Timeline"]]</title>
+    <link rel="stylesheet" href="[[=URL('static', 'css/style.css')]]">
+</head>
+<body>
+    [[if not family:]]
+    <!-- Landing Page -->
+    <div class="landing-page">
+        <div class="welcome-card">
+            <h1>Family Memory Timeline</h1>
+            <p>Create and share your family's stories across the years. Build a beautiful timeline of memories that future generations will treasure.</p>
+            <div class="action-buttons">
+                <a href="[[=URL('create')]]" class="btn">Create Timeline</a>
+                <a href="[[=URL('join')]]" class="btn" style="background: #666;">Join Family</a>
+            </div>
+        </div>
+    </div>
+    [[else:]]
+    <!-- Timeline Interface -->
+    <div id="header">
+        <button id="addMemoryBtn">+ Add Memory</button>
+        <h1 id="timelineTitle">[[=family.family_name]] Timeline (1930 - 2025)</h1>
+        <div id="controls">
+            <button class="control-btn" id="zoomOut">-</button>
+            <input type="range" id="zoomSlider" min="0.5" max="2" step="0.1" value="1">
+            <button class="control-btn" id="zoomIn">+</button>
+            <div style="margin-left: 20px; color: #8B4513; font-weight: bold;">
+                Code: [[=family.access_code]]
+            </div>
+        </div>
+    </div>
+
+    <div id="timelineContainer">
+        <div id="timeline">
+            <div id="timelineLine"></div>
+        </div>
+    </div>
+
+    <!-- Add Memory Modal -->
+    <div id="addMemoryModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add a Memory</h2>
+            <form id="addMemoryForm">
+                <div class="form-group">
+                    <label for="memoryYear">Year:</label>
+                    <input type="number" id="memoryYear" min="1930" max="2025" required>
+                </div>
+                <div class="form-group">
+                    <label for="memoryTitle">Title:</label>
+                    <input type="text" id="memoryTitle" placeholder="Give your memory a title..." required>
+                </div>
+                <div class="form-group">
+                    <label for="authorName">Your Name:</label>
+                    <input type="text" id="authorName" required>
+                </div>
+                <div class="form-group">
+                    <label for="storyTheme">Choose a Theme:</label>
+                    <select id="storyTheme" required>
+                        <option value="">Select a theme...</option>
+                    </select>
+                </div>
+                <div class="form-group" id="themeQuestionsGroup" style="display: none;">
+                    <label>Theme Questions (select the ones you'd like to answer):</label>
+                    <div id="themeQuestions" class="theme-questions"></div>
+                </div>
+                <div class="form-group">
+                    <label for="storyText">Your Memory:</label>
+                    <textarea id="storyText" placeholder="Tell your story here..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="photoUpload">Add a Photo (optional):</label>
+                    <input type="file" id="photoUpload" accept="image/*">
+                </div>
+                <button type="submit" class="btn">Save Memory</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- View Year Modal -->
+    <div id="viewYearModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalYearTitle">Memories from 1950</h2>
+            <div id="yearStories"></div>
+            <hr style="margin: 30px 0;">
+            <h3>Add a New Memory for This Year</h3>
+            <form id="yearMemoryForm">
+                <div class="form-group">
+                    <label for="yearMemoryTitle">Title:</label>
+                    <input type="text" id="yearMemoryTitle" placeholder="Give your memory a title..." required>
+                </div>
+                <div class="form-group">
+                    <label for="yearAuthorName">Your Name:</label>
+                    <input type="text" id="yearAuthorName" required>
+                </div>
+                <div class="form-group">
+                    <label for="yearStoryTheme">Choose a Theme:</label>
+                    <select id="yearStoryTheme" required>
+                        <option value="">Select a theme...</option>
+                    </select>
+                </div>
+                <div class="form-group" id="yearThemeQuestionsGroup" style="display: none;">
+                    <label>Theme Questions (select the ones you'd like to answer):</label>
+                    <div id="yearThemeQuestions" class="theme-questions"></div>
+                </div>
+                <div class="form-group">
+                    <label for="yearStoryText">Your Memory:</label>
+                    <textarea id="yearStoryText" placeholder="Tell your story here..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="yearPhotoUpload">Add a Photo (optional):</label>
+                    <input type="file" id="yearPhotoUpload" accept="image/*">
+                </div>
+                <button type="submit" class="btn">Save Memory</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Pass family code to JavaScript
+        window.familyCode = '[[=family_code]]';
+    </script>
+    <script src="[[=URL('static', 'js/timeline.js')]]"></script>
+    [[pass]]
+</body>
+</html>

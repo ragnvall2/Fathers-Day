@@ -1,0 +1,95 @@
+# Family Timeline .gitignore
+
+# Database files (contains family photos and personal stories)
+*.db
+*.sqlite
+*.sqlite3
+databases/
+storage.db
+
+# py4web generated files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# py4web specific
+apps/*/databases/
+apps/*/__pycache__/
+apps/*/sessions/
+apps/*/private/
+apps/*/uploads/
+*.table
+*.lock
+
+# Uploaded photos and media
+uploads/
+photos/
+media/
+static/uploads/
+
+# Environment variables
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+temp/
+
+# Secrets and config
+secrets.py
+config.py
+local_settings.py
+
+# Keep these important files:
+# ✅ models.py
+# ✅ controllers.py  
+# ✅ templates/
+# ✅ static/css/
+# ✅ static/js/
+# ✅ requirements.txt
+# ✅ README.md
