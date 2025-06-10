@@ -8,7 +8,7 @@ from py4web import action, request, abort, redirect, URL, HTTP, response
 from py4web.utils.form import Form, FormStyleBulma
 
 # Import from common and models
-from .common import db, cors, url_signer
+from .common import db, session, T, cache, auth, flash
 from .models import (
     create_family, get_family_by_code, 
     get_memories_by_year, get_questions_by_theme, save_memory
