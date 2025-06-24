@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Family Timeline</title>
+    <link rel="stylesheet" href="[[=URL('static', 'css/style.css')]]">
+</head>
+<body>
+    <div class="landing-page">
+        <div class="welcome-card">
+            <h1>Create Your Family Timeline</h1>
+            <p>Start preserving your family's precious memories with a beautiful, interactive timeline that can be shared with loved ones across generations.</p>
+            
+            <form id="createFamilyForm" style="text-align: left; margin-top: 30px;">
+                <div class="form-group">
+                    <label for="familyName">Family Name:</label>
+                    <input type="text" id="familyName" name="familyName" placeholder="The Smith Family" required>
+                    <small style="color: #666; font-size: 12px;">This will be the title of your timeline</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="createdBy">Your Name:</label>
+                    <input type="text" id="createdBy" name="createdBy" placeholder="Your full name" required>
+                    <small style="color: #666; font-size: 12px;">You'll be listed as the timeline creator</small>
+                </div>
+                
+                <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #8B4513;">
+                    <h3 style="margin-top: 0; color: #8B4513;">How it works:</h3>
+                    <ul style="margin: 10px 0; padding-left: 20px; color: #333;">
+                        <li>We'll create a unique access code for your family</li>
+                        <li>Share this code with family members to let them add memories</li>
+                        <li>Everyone can contribute stories, photos, and answer guided questions</li>
+                        <li>Your timeline grows richer with each family member's contributions</li>
+                    </ul>
+                </div>
+                
+                <div class="action-buttons" style="margin-top: 30px;">
+                    <button type="submit" class="btn">Create Timeline</button>
+                    <a href="[[=URL('index')]]" class="btn" style="background: #666; text-decoration: none;">Back to Home</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div id="successModal" class="modal" style="display: none;">
+        <div class="modal-content" style="text-align: center;">
+            <h2 style="color: #8B4513; margin-bottom: 20px;">🎉 Timeline Created Successfully!</h2>
+            
+            <div style="background: #f0f8ff; padding: 20px; border-radius: 8px; margin: 20px 0; border: 2px solid #8B4513;">
+                <h3 style="color: #8B4513; margin-top: 0;">Your Family Access Code:</h3>
+                <div id="accessCode" style="font-size: 32px; font-weight: bold; color: #8B4513; letter-spacing: 3px; margin: 10px 0;"></div>
+                <p style="color: #666; font-size: 14px; margin-bottom: 0;">Share this code with family members so they can join and add memories</p>
+            </div>
+            
+            <div style="background: #fff8f0; padding: 15px; border-radius: 8px; margin: 20px 0; text-align: left;">
+                <h4 style="color: #8B4513; margin-top: 0;">Next Steps:</h4>
+                <ol style="color: #333; margin: 0; padding-left: 20px;">
+                    <li>Save or write down your access code</li>
+                    <li>Share it with family members via text, email, or phone</li>
+                    <li>Start adding your first memory to the timeline</li>
+                    <li>Encourage others to contribute their stories</li>
+                </ol>
+            </div>
+            
+            <div class="action-buttons" style="margin-top: 20px;">
+                <button id="goToTimeline" class="btn">Go to My Timeline</button>
+                <button id="copyCode" class="btn" style="background: #666;">Copy Access Code</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let familyData = null;
+
+        document.getElementById('createFamilyForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = e.target.querySelector('button[type="submit"]');
+            const originalText = submitBtn.textContent;
+            submitBtn.textContent = 'Creating...';
+            submitBtn.disabled = true;
+            
+            try {
+                const formData = {
+                    family_name: document.getElementById('familyName').value,
+                    created_by: document.getElementById('createdBy').value
+                };
+                
+                const response = await fetch('[[=URL("create_family")]]', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    familyData = result;
+                    document.getElementById('accessCode').textContent = result.access_code;
+                    document.getElementById('successModal').style.display = 'block';
+                } else {
+                    alert('Error creating timeline. Please try again.');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Error creating timeline. Please check your connection and try again.');
+            } finally {
+                submitBtn.textContent = originalText;
+                submitBtn.disabled = false;
+            }
+        });
+
+        // Go to timeline button
+        document.getElementById('goToTimeline').addEventListener('click', function() {
+            if (familyData) {
+                window.location.href = familyData.redirect_url;
+            }
+        });
+
+        // Copy access code button
+        document.getElementById('copyCode').addEventListener('click', async function() {
+            const accessCode = document.getElementById('accessCode').textContent;
+            
+            try {
+                await navigator.clipboard.writeText(accessCode);
+                
+                const btn = document.getElementById('copyCode');
+                const originalText = btn.textContent;
+                btn.textContent = '✓ Copied!';
+                btn.style.background = '#28a745';
+                
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.style.background = '#666';
+                }, 2000);
+                
+            } catch (err) {
+                // Fallback for older browsers
+                const textArea = document.createElement('textarea');
+                textArea.value = accessCode;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                alert('Access code copied to clipboard: ' + accessCode);
+            }
+        });
+
+        // Close modal when clicking outside
+        document.getElementById('successModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                // Don't close modal by clicking outside - require explicit action
+                // This ensures users see their access code
+            }
+        });
+    </script>
+</body>
+</html>

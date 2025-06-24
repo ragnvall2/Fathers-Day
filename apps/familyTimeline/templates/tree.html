@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[[=family.family_name if family else "Family Tree"]]</title>
+    <link rel="stylesheet" href="[[=URL('static', 'css/tree-style.css')]]">
+</head>
+<body>
+    [[if not family:]]
+    <!-- Landing Page -->
+    <div class="landing-page">
+        <div class="welcome-card">
+            <h1>🌳 Family Tree</h1>
+            <p>Build a beautiful, interactive family tree where every branch tells a story. Connect generations and preserve memories for the future.</p>
+            <div class="action-buttons">
+                <a href="[[=URL('create')]]" class="btn">Plant Your Tree</a>
+                <a href="[[=URL('join')]]" class="btn secondary">Join Family Tree</a>
+            </div>
+        </div>
+    </div>
+    [[else:]]
+    <!-- Family Tree Interface -->
+    <div id="header">
+        <div class="header-left">
+            <h1 id="familyName">🌳 [[=family.family_name]]</h1>
+            <div class="family-code">Code: <strong>[[=family.access_code]]</strong></div>
+        </div>
+        <div class="header-right">
+            <button id="addPersonBtn" class="primary-btn">+ Add Person</button>
+            <button id="settingsBtn" class="secondary-btn">⚙️ Settings</button>
+        </div>
+    </div>
+
+    <!-- Main Tree Container -->
+    <div id="treeContainer" class="tree-container">
+        <!-- Tree will be rendered here by JavaScript -->
+    </div>
+
+    <!-- Person Details Modal -->
+    <div id="personModal" class="modal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <div class="person-header">
+                <div class="person-info">
+                    <h2 id="personModalName">Person Name</h2>
+                    <div id="personModalDetails" class="person-details"></div>
+                </div>
+                <div class="person-actions">
+                    <button id="addStoryBtn" class="btn">+ Add Story</button>
+                    <button id="editPersonBtn" class="btn secondary">Edit Person</button>
+                </div>
+            </div>
+            
+            <div class="modal-tabs">
+                <button class="tab-btn active" data-tab="stories">Stories</button>
+                <button class="tab-btn" data-tab="timeline">Life Timeline</button>
+                <button class="tab-btn" data-tab="family">Family Connections</button>
+            </div>
+            
+            <div class="tab-content">
+                <div id="tab-stories" class="tab-panel active">
+                    <div id="personStories" class="stories-container">
+                        <!-- Stories will be loaded here -->
+                    </div>
+                </div>
+                
+                <div id="tab-timeline" class="tab-panel">
+                    <div id="personTimeline" class="timeline-container">
+                        <!-- Person's life timeline -->
+                    </div>
+                </div>
+                
+                <div id="tab-family" class="tab-panel">
+                    <div id="personFamily" class="family-connections">
+                        <!-- Family relationships -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Person Modal -->
+    <div id="addPersonModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Add New Family Member</h2>
+            <form id="addPersonForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name</label>
+                        <input type="text" id="lastName" name="lastName">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="maidenName">Maiden Name</label>
+                        <input type="text" id="maidenName" name="maidenName">
+                    </div>
+                    <div class="form-group">
+                        <label for="nickname">Nickname</label>
+                        <input type="text" id="nickname" name="nickname">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="birthDate">Birth Date</label>
+                        <input type="date" id="birthDate" name="birthDate">
+                    </div>
+                    <div class="form-group">
+                        <label for="birthPlace">Birth Place</label>
+                        <input type="text" id="birthPlace" name="birthPlace">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gender">Gender</label>
+                        <select id="gender" name="gender">
+                            <option value="">Select...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="isLiving">Status</label>
+                        <select id="isLiving" name="isLiving">
+                            <option value="true">Living</option>
+                            <option value="false">Deceased</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="deathDateGroup" style="display: none;">
+                    <label for="deathDate">Death Date</label>
+                    <input type="date" id="deathDate" name="deathDate">
+                </div>
+                
+                <div class="form-group">
+                    <label for="relationshipPerson">Relationship to existing person</label>
+                    <select id="relationshipPerson" name="relationshipPerson">
+                        <option value="">Select person...</option>
+                    </select>
+                </div>
+                
+                <div class="form-group" id="relationshipTypeGroup" style="display: none;">
+                    <label for="relationshipType">Relationship Type</label>
+                    <select id="relationshipType" name="relationshipType">
+                        <option value="">Select...</option>
+                        <option value="parent">Parent of selected person</option>
+                        <option value="child">Child of selected person</option>
+                        <option value="spouse">Spouse of selected person</option>
+                        <option value="sibling">Sibling of selected person</option>
+                        <option value="adopted_parent">Adopted parent of selected person</option>
+                        <option value="adopted_child">Adopted child of selected person</option>
+                        <option value="step_parent">Step-parent of selected person</option>
+                        <option value="step_child">Step-child of selected person</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="profilePhoto">Profile Photo</label>
+                    <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                    <label for="bioSummary">Short Biography</label>
+                    <textarea id="bioSummary" name="bioSummary" rows="3" placeholder="Brief description of this person..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Add to Tree</button>
+                    <button type="button" class="btn secondary" onclick="document.getElementById('addPersonModal').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add Story Modal -->
+    <div id="addStoryModal" class="modal">
+        <div class="modal-content large">
+            <span class="close">&times;</span>
+            <h2>Add Story</h2>
+            <form id="addStoryForm">
+                <input type="hidden" id="storyPersonId" name="storyPersonId">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="storyTitle">Story Title *</label>
+                        <input type="text" id="storyTitle" name="storyTitle" required placeholder="Give your story a memorable title...">
+                    </div>
+                    <div class="form-group">
+                        <label for="storyAuthor">Author (Your Name) *</label>
+                        <input type="text" id="storyAuthor" name="storyAuthor" required placeholder="Who is telling this story?">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="storyTheme">Theme *</label>
+                        <select id="storyTheme" name="storyTheme" required>
+                            <option value="">Select a theme...</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="timePeriod">Time Period</label>
+                        <input type="text" id="timePeriod" name="timePeriod" placeholder="e.g., Childhood, 1950s, College Years">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="yearOccurred">Year (approximate)</label>
+                    <input type="number" id="yearOccurred" name="yearOccurred" min="1900" max="2030" placeholder="When did this happen?">
+                </div>
+                
+                <div class="form-group" id="storyQuestionsGroup" style="display: none;">
+                    <label>Guided Questions (optional - select ones you'd like to answer)</label>
+                    <div id="storyQuestions" class="theme-questions"></div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="storyText">Your Story *</label>
+                    <textarea id="storyText" name="storyText" rows="8" required placeholder="Tell the story here..."></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="storyPhoto">Add Photo</label>
+                    <input type="file" id="storyPhoto" name="storyPhoto" accept="image/*">
+                </div>
+                
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="isFeatured" name="isFeatured"> 
+                        Featured Story (highlight this story)
+                    </label>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Save Story</button>
+                    <button type="button" class="btn secondary" onclick="document.getElementById('addStoryModal').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tree Settings Modal -->
+    <div id="settingsModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Tree Settings</h2>
+            <form id="settingsForm">
+                <div class="form-group">
+                    <label for="treeStyle">Tree Style</label>
+                    <select id="treeStyle" name="treeStyle">
+                        <option value="classic">Classic</option>
+                        <option value="modern">Modern</option>
+                        <option value="natural">Natural</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="colorScheme">Color Scheme</label>
+                    <select id="colorScheme" name="colorScheme">
+                        <option value="earth">Earth Tones</option>
+                        <option value="ocean">Ocean Blues</option>
+                        <option value="sunset">Sunset Colors</option>
+                        <option value="forest">Forest Greens</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label>Display Options</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" id="showPhotos" name="showPhotos" checked> Show Photos</label>
+                        <label><input type="checkbox" id="showDates" name="showDates" checked> Show Birth/Death Dates</label>
+                        <label><input type="checkbox" id="showPlaces" name="showPlaces"> Show Birth Places</label>
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">Save Settings</button>
+                    <button type="button" class="btn secondary" onclick="document.getElementById('settingsModal').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Pass family code to JavaScript
+        window.familyCode = '[[=family_code]]';
+    </script>
+    <script src="[[=URL('static', 'js/familyTree.js')]]"></script>
+    [[pass]]
+</body>
+</html>
