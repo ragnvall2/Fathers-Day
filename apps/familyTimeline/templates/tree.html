@@ -46,34 +46,15 @@
                     <div id="personDetails" class="person-details"></div>
                 </div>
                 <div class="person-actions">
-                    <button id="addStoryBtn" class="btn primary">+ Add Story</button>
-                    <button id="editPersonBtn" class="btn secondary">✏️ Edit Person</button>
-                    <button id="deletePersonBtn" class="btn" style="background: #dc3545;">🗑️ Delete Person</button>
+                    <button id="addStoryFromModal" class="btn primary">+ Add Story</button>
                 </div>
             </div>
             
-            <div class="modal-tabs">
-                <button class="tab-btn active" data-tab="info">Overview</button>
-                <button class="tab-btn" data-tab="stories">Stories</button>
-                <button class="tab-btn" data-tab="family">Family</button>
-            </div>
-            
-            <div class="tab-content">
-                <div id="tab-info" class="tab-panel active">
-                    <div id="personPhoto" style="text-align: center; margin: 20px 0;"></div>
-                    <div id="personFullDetails"></div>
-                </div>
-                
-                <div id="tab-stories" class="tab-panel">
-                    <div id="personStories" class="stories-container">
-                        <div class="loading-stories">Loading stories...</div>
-                    </div>
-                </div>
-                
-                <div id="tab-family" class="tab-panel">
-                    <div id="personFamily" class="family-connections">
-                        <p style="text-align: center; color: #666; padding: 40px;">Family connections will be shown here</p>
-                    </div>
+            <!-- Remove tabs completely, just show stories directly -->
+            <div class="stories-section">
+                <h3 style="color: #2E7D32; margin-bottom: 20px; border-bottom: 2px solid #e0e0e0; padding-bottom: 10px;">📖 Stories</h3>
+                <div id="personStories" class="stories-container">
+                    <div class="loading-stories">Loading stories...</div>
                 </div>
             </div>
         </div>
@@ -161,6 +142,7 @@
 
     <!-- ===== NEW EDIT PERSON MODAL ===== -->
     <!-- ADD THIS ENTIRE MODAL TO YOUR EXISTING tree.html -->
+    <!-- Edit Person Modal with Node Customization -->
     <div id="editPersonModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
@@ -233,6 +215,55 @@
                 <div class="form-group">
                     <label for="editBioSummary">Short Biography</label>
                     <textarea id="editBioSummary" name="bio_summary" rows="3" placeholder="Brief description of this person..."></textarea>
+                </div>
+                
+                <!-- NEW: Node Customization Section -->
+                <div class="node-customization">
+                    <h4>🎨 Customize Tree Node Appearance</h4>
+                    <div class="node-options">
+                        <div class="color-picker-group">
+                            <label>Node Color</label>
+                            <div class="color-swatches">
+                                <div class="color-swatch swatch-green selected" data-color="green" title="Green"></div>
+                                <div class="color-swatch swatch-blue" data-color="blue" title="Blue"></div>
+                                <div class="color-swatch swatch-purple" data-color="purple" title="Purple"></div>
+                                <div class="color-swatch swatch-pink" data-color="pink" title="Pink"></div>
+                                <div class="color-swatch swatch-orange" data-color="orange" title="Orange"></div>
+                                <div class="color-swatch swatch-red" data-color="red" title="Red"></div>
+                                <div class="color-swatch swatch-gold" data-color="gold" title="Gold"></div>
+                                <div class="color-swatch swatch-silver" data-color="silver" title="Silver"></div>
+                            </div>
+                            <input type="hidden" id="editNodeColor" name="node_color" value="green">
+                        </div>
+                        
+                        <div class="shape-picker-group">
+                            <label>Node Shape</label>
+                            <div class="shape-options">
+                                <div class="shape-option circle selected" data-shape="circle" title="Circle"></div>
+                                <div class="shape-option square" data-shape="square" title="Square"></div>
+                                <div class="shape-option diamond" data-shape="diamond" title="Diamond"></div>
+                                <div class="shape-option hexagon" data-shape="hexagon" title="Hexagon"></div>
+                                <div class="shape-option star" data-shape="star" title="Star"></div>
+                                <div class="shape-option heart" data-shape="heart" title="Heart"></div>
+                            </div>
+                            <input type="hidden" id="editNodeShape" name="node_shape" value="circle">
+                        </div>
+                    </div>
+                    
+                    <!-- Live Preview -->
+                    <div style="text-align: center; margin-top: 20px;">
+                        <div style="color: #666; margin-bottom: 10px; font-weight: bold;">Preview:</div>
+                        <svg width="80" height="60" style="border: 1px solid #ddd; border-radius: 8px; background: #f9f9f9;">
+                            <defs>
+                                <radialGradient id="previewGradient" cx="30%" cy="30%" r="70%">
+                                    <stop offset="0%" id="gradientStart" style="stop-color:#90EE90;stop-opacity:1" />
+                                    <stop offset="100%" id="gradientEnd" style="stop-color:#228B22;stop-opacity:1" />
+                                </radialGradient>
+                            </defs>
+                            <ellipse id="previewNode" cx="40" cy="30" rx="25" ry="18" fill="url(#previewGradient)" stroke="#228B22" stroke-width="2"/>
+                            <text x="40" y="35" text-anchor="middle" font-size="12" font-weight="bold" fill="#2F4F2F">A</text>
+                        </svg>
+                    </div>
                 </div>
                 
                 <div class="form-actions">
@@ -345,6 +376,9 @@
         <div class="modal-content large">
             <span class="close">&times;</span>
             <h2>📖 Add New Story</h2>
+            <div style="background: #f0f8ff; padding: 10px; border-radius: 8px; margin-bottom: 20px; text-align: center;">
+                <strong>Adding story for: <span id="storyPersonName">Person Name</span></strong>
+            </div>
             <form id="storyForm">
                 <input type="hidden" id="storyPersonId" name="person_id">
                 

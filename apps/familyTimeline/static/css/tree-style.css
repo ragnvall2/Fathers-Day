@@ -1,4 +1,4 @@
-/* Family Tree Styles - Complete with Organic Tree Enhancements */
+/* Family Tree Styles - Complete with Node Customization */
 
 * {
     margin: 0;
@@ -93,69 +93,44 @@ body {
     background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
 }
 
-.organic-tree-canvas {
+.simple-tree-canvas {
     width: 100%;
     height: 100%;
     position: relative;
     cursor: grab;
+    background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
 }
 
-.organic-tree-canvas:active {
+.simple-tree-canvas:active {
     cursor: grabbing;
 }
 
-/* Organic Tree Controls */
-.organic-tree-controls {
+/* UPDATED Tree Controls - Fixed Layout */
+.tree-controls {
     position: absolute;
     bottom: 20px;
     right: 20px;
     display: flex;
-    gap: 20px;
+    flex-direction: column;
+    gap: 15px;
     align-items: center;
     background: rgba(255,255,255,0.95);
-    padding: 15px 25px;
-    border-radius: 30px;
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-    backdrop-filter: blur(10px);
-    border: 2px solid rgba(46,125,50,0.1);
-}
-
-.control-group {
-    display: flex;
-    gap: 10px;
-    align-items: center;
-}
-
-.mode-btn {
-    padding: 10px 20px;
-    background: linear-gradient(45deg, #4CAF50, #2E7D32);
-    color: white;
-    border: none;
+    padding: 15px 20px;
     border-radius: 20px;
-    font-size: 14px;
-    font-weight: bold;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 4px 15px rgba(76,175,80,0.3);
-}
-
-.mode-btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(76,175,80,0.4);
-}
-
-.mode-btn.active {
-    background: linear-gradient(45deg, #FF9800, #F57C00);
-    animation: pulse 2s infinite;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    backdrop-filter: blur(10px);
+    min-width: 180px;
 }
 
 .zoom-controls {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 0 15px;
-    border-left: 2px solid rgba(46,125,50,0.2);
-    border-right: 2px solid rgba(46,125,50,0.2);
+    padding: 8px 12px;
+    background: rgba(46,125,50,0.1);
+    border-radius: 15px;
+    width: 100%;
+    justify-content: center;
 }
 
 .control-btn {
@@ -163,18 +138,22 @@ body {
     height: 40px;
     border: none;
     border-radius: 50%;
-    background: linear-gradient(45deg, #8BC34A, #4CAF50);
+    background: linear-gradient(45deg, #4CAF50, #2E7D32);
     color: white;
-    font-size: 20px;
+    font-size: 18px;
     font-weight: bold;
     cursor: pointer;
     transition: all 0.3s ease;
-    box-shadow: 0 4px 12px rgba(139,195,74,0.3);
+    box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .control-btn:hover {
+    background: linear-gradient(45deg, #45a049, #1B5E20);
     transform: scale(1.1);
-    box-shadow: 0 6px 18px rgba(139,195,74,0.4);
+    box-shadow: 0 6px 18px rgba(76,175,80,0.4);
 }
 
 #zoomLevel {
@@ -184,86 +163,161 @@ body {
     min-width: 60px;
     text-align: center;
     padding: 8px;
-    background: rgba(46,125,50,0.1);
-    border-radius: 15px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 12px;
+    border: 2px solid rgba(46,125,50,0.2);
 }
 
-.tree-actions {
-    display: flex;
-    gap: 10px;
-}
-
-.action-btn {
-    padding: 10px 18px;
+/* Center button should be full width and prominent */
+#centerTreeBtn {
+    width: 100%;
+    height: 45px;
+    border-radius: 12px;
     background: linear-gradient(45deg, #FF9800, #F57C00);
     color: white;
-    border: none;
-    border-radius: 20px;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: bold;
+    padding: 0 15px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    border: none;
     cursor: pointer;
     transition: all 0.3s ease;
     box-shadow: 0 4px 12px rgba(255,152,0,0.3);
 }
 
-.action-btn:hover {
+#centerTreeBtn:hover {
+    background: linear-gradient(45deg, #FB8C00, #E65100);
     transform: translateY(-2px);
-    box-shadow: 0 6px 18px rgba(255,152,0,0.4);
+    box-shadow: 0 6px 20px rgba(255,152,0,0.4);
 }
 
-/* Organic SVG Tree Styles */
-#organicTreeSVG {
-    width: 100%;
-    height: 100%;
-    transition: transform 0.3s ease;
+/* Context Menu */
+.context-menu {
+    position: fixed;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+    border: 1px solid #ddd;
+    padding: 5px 0;
+    z-index: 1000;
+    min-width: 160px;
 }
 
-.organic-person {
-    transition: all 0.3s ease;
+.context-item {
+    padding: 10px 15px;
     cursor: pointer;
+    transition: background 0.2s ease;
+    font-size: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-.organic-person:hover {
-    filter: brightness(1.15) drop-shadow(0 0 15px rgba(46,125,50,0.6));
+.context-item:hover {
+    background: #f0f0f0;
 }
 
+.context-separator {
+    height: 1px;
+    background: #e0e0e0;
+    margin: 5px 0;
+}
+
+/* Person Node Styles with Customization */
 .person-node {
     transition: all 0.3s ease;
     cursor: pointer;
 }
 
 .person-node:hover {
-    filter: brightness(1.2) drop-shadow(0 0 8px rgba(46,125,50,0.6));
+    filter: brightness(1.1) drop-shadow(0 0 8px rgba(46,125,50,0.6));
 }
 
-/* Organic Branch Styles */
-.organic-branch {
-    transition: all 0.5s ease;
+/* Node Shapes */
+.node-circle {
+    rx: 50;
+    ry: 35;
 }
 
-.organic-branch:hover {
-    stroke-width: 12;
-    filter: brightness(1.1) drop-shadow(0 0 8px rgba(139,69,19,0.5));
+.node-square {
+    rx: 15;
+    ry: 15;
 }
 
-.main-branch {
-    stroke: #8B4513;
-    stroke-width: 25;
-    stroke-linecap: round;
+.node-diamond {
+    transform: rotate(45deg);
+    rx: 35;
+    ry: 35;
 }
 
-.secondary-branch {
-    stroke: #A0522D;
-    stroke-width: 15;
-    stroke-linecap: round;
+.node-hexagon {
+    rx: 45;
+    ry: 25;
+    transform: rotate(30deg);
 }
 
-.child-branch {
-    stroke: #CD853F;
-    stroke-width: 8;
-    stroke-linecap: round;
+.node-star {
+    /* Will be handled with SVG path for star shape */
 }
 
+.node-heart {
+    /* Will be handled with SVG path for heart shape */
+}
+
+/* Node Color Themes */
+.node-color-green {
+    fill: url(#greenGradient);
+    stroke: #228B22;
+}
+
+.node-color-blue {
+    fill: url(#blueGradient);
+    stroke: #1E90FF;
+}
+
+.node-color-purple {
+    fill: url(#purpleGradient);
+    stroke: #8A2BE2;
+}
+
+.node-color-pink {
+    fill: url(#pinkGradient);
+    stroke: #FF69B4;
+}
+
+.node-color-orange {
+    fill: url(#orangeGradient);
+    stroke: #FF8C00;
+}
+
+.node-color-red {
+    fill: url(#redGradient);
+    stroke: #DC143C;
+}
+
+.node-color-gold {
+    fill: url(#goldGradient);
+    stroke: #FFD700;
+}
+
+.node-color-silver {
+    fill: url(#silverGradient);
+    stroke: #C0C0C0;
+}
+
+/* Story indicator styles */
+.story-indicator {
+    animation: storyPulse 2s infinite;
+}
+
+@keyframes storyPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Branch/Connection Styles */
 .branch {
     transition: all 0.3s ease;
 }
@@ -271,91 +325,6 @@ body {
 .branch:hover {
     stroke-width: 12;
     filter: brightness(1.1);
-}
-
-/* Connection Mode Styles */
-.person-node.connectable {
-    animation: organicPulse 1.5s infinite;
-}
-
-.person-node.connectable:hover {
-    animation: organicGlow 0.8s infinite;
-}
-
-.person-node.connection-start {
-    filter: drop-shadow(0 0 20px #FFD700) brightness(1.3);
-    animation: connectionReady 1s infinite;
-}
-
-/* Animations */
-@keyframes organicPulse {
-    0%, 100% { 
-        filter: brightness(1) drop-shadow(0 0 5px rgba(76,175,80,0.5));
-    }
-    50% { 
-        filter: brightness(1.1) drop-shadow(0 0 15px rgba(76,175,80,0.8));
-    }
-}
-
-@keyframes organicGlow {
-    0%, 100% { 
-        filter: brightness(1.1) drop-shadow(0 0 10px rgba(255,215,0,0.6));
-    }
-    50% { 
-        filter: brightness(1.3) drop-shadow(0 0 25px rgba(255,215,0,0.9));
-    }
-}
-
-@keyframes connectionReady {
-    0%, 100% { 
-        filter: drop-shadow(0 0 15px #FFD700) brightness(1.2);
-    }
-    50% { 
-        filter: drop-shadow(0 0 30px #FFD700) brightness(1.4);
-    }
-}
-
-@keyframes pulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-/* Branch Growing Animation */
-@keyframes growBranch {
-    from {
-        stroke-dashoffset: 100%;
-    }
-    to {
-        stroke-dashoffset: 0;
-    }
-}
-
-.growing {
-    animation: growBranch 1.5s ease-out forwards;
-}
-
-/* Nature Animation Styles */
-@keyframes birdFly {
-    0%, 100% { transform: translateX(0) translateY(0); }
-    25% { transform: translateX(10px) translateY(-5px); }
-    50% { transform: translateX(20px) translateY(0); }
-    75% { transform: translateX(10px) translateY(5px); }
-}
-
-@keyframes leafFall {
-    0% { 
-        transform: translateY(0) rotate(0deg);
-        opacity: 0.4;
-    }
-    100% { 
-        transform: translateY(800px) rotate(360deg);
-        opacity: 0;
-    }
-}
-
-@keyframes leafSway {
-    0% { transform: rotate(-2deg); }
-    100% { transform: rotate(2deg); }
 }
 
 /* Modal Styles Enhanced */
@@ -440,48 +409,6 @@ body {
     display: flex;
     gap: 10px;
     flex-shrink: 0;
-}
-
-/* Modal Tabs Enhanced */
-.modal-tabs {
-    display: flex;
-    border-bottom: 2px solid #e0e0e0;
-    margin-bottom: 20px;
-    background: rgba(46,125,50,0.05);
-    border-radius: 10px 10px 0 0;
-}
-
-.tab-btn {
-    padding: 15px 25px;
-    background: none;
-    border: none;
-    font-size: 16px;
-    font-weight: bold;
-    color: #666;
-    cursor: pointer;
-    border-bottom: 3px solid transparent;
-    transition: all 0.3s ease;
-    border-radius: 10px 10px 0 0;
-}
-
-.tab-btn.active {
-    color: #2E7D32;
-    background: white;
-    border-bottom-color: #2E7D32;
-}
-
-.tab-btn:hover {
-    color: #2E7D32;
-    background: rgba(46,125,50,0.1);
-}
-
-.tab-panel {
-    display: none;
-    min-height: 300px;
-}
-
-.tab-panel.active {
-    display: block;
 }
 
 /* Stories Container */
@@ -695,46 +622,165 @@ body {
     transform: scale(1.02);
 }
 
-/* Family Connections */
-.family-connections-list {
-    display: grid;
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.connection-item {
-    background: linear-gradient(135deg, #f8fff8 0%, #f0f8ff 100%);
+/* Node Customization Section */
+.node-customization {
+    background: linear-gradient(135deg, #f0f8ff 0%, #e8f4f8 100%);
     padding: 20px;
     border-radius: 12px;
-    border-left: 4px solid #2E7D32;
-    transition: all 0.3s ease;
+    margin: 20px 0;
+    border: 2px solid rgba(46,125,50,0.1);
 }
 
-.connection-item:hover {
-    transform: translateX(5px);
-    box-shadow: 0 4px 15px rgba(46,125,50,0.1);
-}
-
-.connection-type {
-    font-weight: bold;
+.node-customization h4 {
     color: #2E7D32;
-    font-size: 14px;
-    margin-bottom: 5px;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
+    margin-bottom: 15px;
+    font-size: 16px;
 }
 
-.connection-person {
-    font-size: 18px;
-    font-weight: bold;
-    color: #333;
-    margin-bottom: 5px;
+.node-options {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 20px;
 }
 
-.connection-details {
-    font-size: 14px;
+.color-picker-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.color-swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.color-swatch {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 3px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.color-swatch:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+}
+
+.color-swatch.selected {
+    border-color: #2E7D32;
+    transform: scale(1.1);
+}
+
+.color-swatch::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.color-swatch.selected::after {
+    opacity: 1;
+}
+
+/* Color swatches */
+.swatch-green { background: linear-gradient(45deg, #90EE90, #228B22); }
+.swatch-blue { background: linear-gradient(45deg, #87CEEB, #1E90FF); }
+.swatch-purple { background: linear-gradient(45deg, #DDA0DD, #8A2BE2); }
+.swatch-pink { background: linear-gradient(45deg, #FFB6C1, #FF69B4); }
+.swatch-orange { background: linear-gradient(45deg, #FFA500, #FF8C00); }
+.swatch-red { background: linear-gradient(45deg, #FF6347, #DC143C); }
+.swatch-gold { background: linear-gradient(45deg, #FFD700, #B8860B); }
+.swatch-silver { background: linear-gradient(45deg, #E0E0E0, #C0C0C0); }
+
+.shape-picker-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.shape-options {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.shape-option {
+    width: 50px;
+    height: 40px;
+    border: 3px solid #ddd;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: white;
+    position: relative;
+}
+
+.shape-option:hover {
+    border-color: #2E7D32;
+    transform: scale(1.05);
+}
+
+.shape-option.selected {
+    border-color: #2E7D32;
+    background: #f0f8ff;
+}
+
+/* Shape icons using CSS */
+.shape-option.circle::after {
+    content: '';
+    width: 24px;
+    height: 16px;
+    background: #666;
+    border-radius: 50%;
+}
+
+.shape-option.square::after {
+    content: '';
+    width: 20px;
+    height: 20px;
+    background: #666;
+    border-radius: 3px;
+}
+
+.shape-option.diamond::after {
+    content: '';
+    width: 16px;
+    height: 16px;
+    background: #666;
+    transform: rotate(45deg);
+}
+
+.shape-option.hexagon::after {
+    content: '⬢';
+    font-size: 20px;
     color: #666;
-    font-style: italic;
+}
+
+.shape-option.star::after {
+    content: '⭐';
+    font-size: 16px;
+}
+
+.shape-option.heart::after {
+    content: '❤️';
+    font-size: 16px;
 }
 
 /* Theme Questions for Story Form */
@@ -1008,7 +1054,11 @@ textarea {
     }
 }
 
-/* Responsive Design */
+.success-message {
+    animation: slideIn 0.3s ease-out;
+}
+
+/* Mobile Responsive Tree Controls */
 @media (max-width: 768px) {
     #header {
         flex-direction: column;
@@ -1020,17 +1070,33 @@ textarea {
         font-size: 20px;
     }
     
-    .organic-tree-controls {
-        flex-direction: column;
-        gap: 15px;
+    .tree-controls {
         bottom: 10px;
         right: 10px;
         left: 10px;
-        padding: 15px;
+        padding: 12px 15px;
+        min-width: auto;
     }
     
-    .control-group, .tree-actions {
-        justify-content: center;
+    .zoom-controls {
+        width: 100%;
+    }
+    
+    .control-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+    
+    #centerTreeBtn {
+        height: 40px;
+        font-size: 13px;
+    }
+    
+    #zoomLevel {
+        min-width: 50px;
+        font-size: 12px;
+        padding: 6px;
     }
     
     .modal-content {
@@ -1068,16 +1134,6 @@ textarea {
         text-align: center;
     }
     
-    .modal-tabs {
-        overflow-x: auto;
-        white-space: nowrap;
-    }
-    
-    .tab-btn {
-        min-width: 120px;
-        flex-shrink: 0;
-    }
-    
     .story-header {
         flex-direction: column;
         gap: 10px;
@@ -1103,28 +1159,41 @@ textarea {
     .welcome-card p {
         font-size: 16px;
     }
+    
+    .node-options {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .color-swatches {
+        grid-template-columns: repeat(3, 1fr);
+    }
+    
+    .shape-options {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 @media (max-width: 480px) {
-    .organic-tree-controls {
+    .tree-controls {
         padding: 10px;
         border-radius: 15px;
     }
     
     .control-btn {
-        width: 35px;
-        height: 35px;
-        font-size: 16px;
+        width: 30px;
+        height: 30px;
+        font-size: 14px;
     }
     
-    .mode-btn, .action-btn {
-        padding: 8px 12px;
+    #centerTreeBtn {
+        height: 35px;
         font-size: 12px;
     }
     
     #zoomLevel {
-        min-width: 50px;
-        font-size: 12px;
+        min-width: 45px;
+        font-size: 11px;
     }
     
     .modal-content {
@@ -1157,5 +1226,23 @@ textarea {
     
     .welcome-card h1 {
         font-size: 28px;
+    }
+    
+    .color-swatches {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .color-swatch {
+        width: 35px;
+        height: 35px;
+    }
+    
+    .shape-options {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    
+    .shape-option {
+        width: 45px;
+        height: 35px;
     }
 }

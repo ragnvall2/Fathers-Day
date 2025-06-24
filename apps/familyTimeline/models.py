@@ -102,7 +102,9 @@ db.define_table(
     Field('show_places', 'boolean', default=False),
     Field('root_person_id', 'reference people'),  # Starting point of tree
     Field('created_at', 'datetime', default=datetime.utcnow),
-    Field('updated_at', 'datetime', default=datetime.utcnow, update=datetime.utcnow)
+    Field('updated_at', 'datetime', default=datetime.utcnow, update=datetime.utcnow),
+    Field('node_color', 'string', length=20, default='green'),
+    Field('node_shape', 'string', length=20, default='circle'),
 )
 
 # Helper functions for family tree operations

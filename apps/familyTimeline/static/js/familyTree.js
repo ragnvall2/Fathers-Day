@@ -3,6 +3,226 @@
  * Click nodes for context menu: Add Spouse, Add Child, Edit, Delete
  */
 
+const NODE_COLORS = {
+    green: { start: '#90EE90', end: '#228B22', stroke: '#228B22' },
+    blue: { start: '#87CEEB', end: '#1E90FF', stroke: '#1E90FF' },
+    purple: { start: '#DDA0DD', end: '#8A2BE2', stroke: '#8A2BE2' },
+    pink: { start: '#FFB6C1', end: '#FF69B4', stroke: '#FF69B4' },
+    orange: { start: '#FFA500', end: '#FF8C00', stroke: '#FF8C00' },
+    red: { start: '#FF6347', end: '#DC143C', stroke: '#DC143C' },
+    gold: { start: '#FFD700', end: '#B8860B', stroke: '#B8860B' },
+    silver: { start: '#E0E0E0', end: '#C0C0C0', stroke: '#C0C0C0' }
+};
+
+function createStarPath(cx, cy, size) {
+    const outerRadius = size;
+    const innerRadius = size * 0.4;
+    const points = 5;
+    let path = '';
+    
+    for (let i = 0; i < points * 2; i++) {
+        const radius = i % 2 === 0 ? outerRadius : innerRadius;
+        const angle = (i * Math.PI) / points - Math.PI / 2;
+        const x = cx + radius * Math.cos(angle);
+        const y = cy + radius * Math.sin(angle);
+        
+        if (i === 0) {
+            path += `M ${x} ${y}`;
+        } else {
+            path += ` L ${x} ${y}`;
+        }
+    }
+    
+    return path + ' Z';
+}
+
+function createHeartPath(cx, cy, size) {
+    const scale = size / 20;
+    return `M ${cx},${cy + 5 * scale} 
+            C ${cx},${cy + 2 * scale} ${cx - 10 * scale},${cy - 5 * scale} ${cx - 10 * scale},${cy - 8 * scale}
+            C ${cx - 10 * scale},${cy - 12 * scale} ${cx - 5 * scale},${cy - 12 * scale} ${cx},${cy - 8 * scale}
+            C ${cx + 5 * scale},${cy - 12 * scale} ${cx + 10 * scale},${cy - 12 * scale} ${cx + 10 * scale},${cy - 8 * scale}
+            C ${cx + 10 * scale},${cy - 5 * scale} ${cx},${cy + 2 * scale} ${cx},${cy + 5 * scale} Z`;
+}
+
+class NodeCustomization {
+    constructor(familyTree) {
+        this.familyTree = familyTree;
+        this.setupCustomizationHandlers();
+        this.nodeCustomization = new NodeCustomization(this);
+    }
+    
+    setupCustomizationHandlers() {
+        // Color swatch selection
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('color-swatch')) {
+                this.handleColorSelection(e.target);
+            }
+        });
+        
+        // Shape selection
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('shape-option')) {
+                this.handleShapeSelection(e.target);
+            }
+        });
+    }
+    
+    handleColorSelection(swatch) {
+        const form = swatch.closest('form');
+        if (!form) return;
+        
+        // Remove selected class from all color swatches in this form
+        form.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+        
+        // Add selected class to clicked swatch
+        swatch.classList.add('selected');
+        
+        // Update hidden input
+        const colorInput = form.querySelector('input[name="node_color"]');
+        const color = swatch.getAttribute('data-color');
+        if (colorInput) {
+            colorInput.value = color;
+        }
+        
+        // Update preview
+        this.updatePreview(form, color, null);
+    }
+    
+    handleShapeSelection(shapeOption) {
+        const form = shapeOption.closest('form');
+        if (!form) return;
+        
+        // Remove selected class from all shape options in this form
+        form.querySelectorAll('.shape-option').forEach(s => s.classList.remove('selected'));
+        
+        // Add selected class to clicked option
+        shapeOption.classList.add('selected');
+        
+        // Update hidden input
+        const shapeInput = form.querySelector('input[name="node_shape"]');
+        const shape = shapeOption.getAttribute('data-shape');
+        if (shapeInput) {
+            shapeInput.value = shape;
+        }
+        
+        // Update preview
+        this.updatePreview(form, null, shape);
+    }
+    
+    updatePreview(form, color, shape) {
+        const previewNode = form.querySelector('#previewNode');
+        const gradientStart = form.querySelector('#gradientStart');
+        const gradientEnd = form.querySelector('#gradientEnd');
+        
+        if (!previewNode) return;
+        
+        // Get current values
+        const currentColor = color || form.querySelector('input[name="node_color"]').value;
+        const currentShape = shape || form.querySelector('input[name="node_shape"]').value;
+        
+        // Update colors
+        if (NODE_COLORS[currentColor]) {
+            const colors = NODE_COLORS[currentColor];
+            if (gradientStart) gradientStart.style.stopColor = colors.start;
+            if (gradientEnd) gradientEnd.style.stopColor = colors.end;
+            previewNode.setAttribute('stroke', colors.stroke);
+        }
+        
+        // Update shape
+        this.updatePreviewShape(previewNode, currentShape);
+    }
+    
+    updatePreviewShape(node, shape) {
+        // Reset transform
+        node.style.transform = '';
+        
+        switch (shape) {
+            case 'circle':
+                node.setAttribute('rx', '25');
+                node.setAttribute('ry', '18');
+                break;
+            case 'square':
+                node.setAttribute('rx', '8');
+                node.setAttribute('ry', '8');
+                break;
+            case 'diamond':
+                node.setAttribute('rx', '20');
+                node.setAttribute('ry', '20');
+                node.style.transform = 'rotate(45deg)';
+                node.style.transformOrigin = '40px 30px';
+                break;
+            case 'hexagon':
+                node.setAttribute('rx', '22');
+                node.setAttribute('ry', '15');
+                break;
+            case 'star':
+                // For star, we'd need to create a path instead of ellipse
+                // For now, just make it more angular
+                node.setAttribute('rx', '20');
+                node.setAttribute('ry', '20');
+                break;
+            case 'heart':
+                // For heart, we'd need to create a path instead of ellipse
+                // For now, just make it more rounded
+                node.setAttribute('rx', '25');
+                node.setAttribute('ry', '20');
+                break;
+        }
+    }
+    
+    // Load customization from person data
+    loadPersonCustomization(person, form) {
+        const nodeColor = person.node_color || 'green';
+        const nodeShape = person.node_shape || 'circle';
+        
+        // Update color selection
+        const colorSwatch = form.querySelector(`.color-swatch[data-color="${nodeColor}"]`);
+        if (colorSwatch) {
+            form.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
+            colorSwatch.classList.add('selected');
+            form.querySelector('input[name="node_color"]').value = nodeColor;
+        }
+        
+        // Update shape selection
+        const shapeOption = form.querySelector(`.shape-option[data-shape="${nodeShape}"]`);
+        if (shapeOption) {
+            form.querySelectorAll('.shape-option').forEach(s => s.classList.remove('selected'));
+            shapeOption.classList.add('selected');
+            form.querySelector('input[name="node_shape"]').value = nodeShape;
+        }
+        
+        // Update preview
+        this.updatePreview(form, nodeColor, nodeShape);
+    }
+}
+
+// Add SVG gradients for all colors to your createTreeContainer function
+function createColorGradients() {
+    const defs = document.querySelector('#familyTreeSVG defs');
+    if (!defs) return;
+    
+    Object.entries(NODE_COLORS).forEach(([colorName, colors]) => {
+        const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+        gradient.setAttribute('id', `${colorName}Gradient`);
+        gradient.setAttribute('cx', '30%');
+        gradient.setAttribute('cy', '30%');
+        gradient.setAttribute('r', '70%');
+        
+        const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop1.setAttribute('offset', '0%');
+        stop1.setAttribute('style', `stop-color:${colors.start};stop-opacity:1`);
+        
+        const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+        stop2.setAttribute('offset', '100%');
+        stop2.setAttribute('style', `stop-color:${colors.end};stop-opacity:1`);
+        
+        gradient.appendChild(stop1);
+        gradient.appendChild(stop2);
+        defs.appendChild(gradient);
+    });
+}
+
 class SimpleFamilyTree {
     constructor(familyCode, containerId = 'treeContainer') {
         this.familyCode = familyCode;
@@ -22,6 +242,7 @@ class SimpleFamilyTree {
         this.createTreeContainer();
         this.setupEventListeners();
         this.renderTree();
+        
     }
     
     async loadTreeData() {
@@ -85,23 +306,97 @@ class SimpleFamilyTree {
             console.error('Error creating starter person:', error);
         }
     }
-    
-    createPersonNode(container, person) {
+    setupModalEventListeners() {
+        // Handle all modal close buttons
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('close')) {
+                const modal = e.target.closest('.modal');
+                if (modal) {
+                    modal.style.display = 'none';
+                }
+            }
+        });
+        
+        // Handle clicking outside modals to close them
+        document.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal')) {
+                e.target.style.display = 'none';
+            }
+        });
+        
+        // Handle Add Story button from person details modal
+        document.addEventListener('click', (e) => {
+            if (e.target.id === 'addStoryFromModal') {
+                console.log('Add story from modal clicked, selectedPerson:', this.selectedPerson);
+                if (this.selectedPerson) {
+                    this.closeModal('personModal');
+                    this.openAddStoryModal(this.selectedPerson);
+                } else {
+                    alert('Error: No person selected for story');
+                }
+            }
+        });
+    }
+
+    createPersonNode(container, person) {    
         const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         group.setAttribute('class', 'person-node');
         group.setAttribute('data-person-id', person.id);
         group.style.cursor = 'pointer';
         
-        // Create leaf shape
-        const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-        leaf.setAttribute('cx', person.x);
-        leaf.setAttribute('cy', person.y);
-        leaf.setAttribute('rx', '50');
-        leaf.setAttribute('ry', '35');
-        leaf.setAttribute('fill', 'url(#leafGradient)');
-        leaf.setAttribute('stroke', '#228B22');
-        leaf.setAttribute('stroke-width', '2');
-        leaf.setAttribute('filter', 'url(#leafShadow)');
+        // Get person's custom appearance or defaults
+        const nodeColor = person.node_color || 'green';
+        const nodeShape = person.node_shape || 'circle';
+        
+        // Create shape based on nodeShape
+        let shapeElement;
+        
+        if (nodeShape === 'star') {
+            // Create star path
+            shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const starPath = createStarPath(person.x, person.y, 25);
+            shapeElement.setAttribute('d', starPath);
+        } else if (nodeShape === 'heart') {
+            // Create heart path
+            shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const heartPath = createHeartPath(person.x, person.y, 20);
+            shapeElement.setAttribute('d', heartPath);
+        } else {
+            // Create ellipse for other shapes
+            shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+            shapeElement.setAttribute('cx', person.x);
+            shapeElement.setAttribute('cy', person.y);
+            
+            // Apply shape-specific attributes
+            switch (nodeShape) {
+                case 'square':
+                    shapeElement.setAttribute('rx', '25');
+                    shapeElement.setAttribute('ry', '25');
+                    shapeElement.style.transform = `translate(${person.x}px, ${person.y}px) rotate(0deg) translate(-${person.x}px, -${person.y}px)`;
+                    break;
+                case 'diamond':
+                    shapeElement.setAttribute('rx', '35');
+                    shapeElement.setAttribute('ry', '35');
+                    shapeElement.style.transform = `translate(${person.x}px, ${person.y}px) rotate(45deg) translate(-${person.x}px, -${person.y}px)`;
+                    shapeElement.style.transformOrigin = `${person.x}px ${person.y}px`;
+                    break;
+                case 'hexagon':
+                    shapeElement.setAttribute('rx', '40');
+                    shapeElement.setAttribute('ry', '25');
+                    break;
+                default: // circle
+                    shapeElement.setAttribute('rx', '50');
+                    shapeElement.setAttribute('ry', '35');
+            }
+        }
+        
+        // Apply color
+        shapeElement.setAttribute('fill', `url(#${nodeColor}Gradient)`);
+        shapeElement.setAttribute('stroke', NODE_COLORS[nodeColor].stroke);
+        shapeElement.setAttribute('stroke-width', '2');
+        shapeElement.setAttribute('filter', 'url(#leafShadow)');
+        
+        group.appendChild(shapeElement);
         
         // Add story indicator if person has stories
         if (person.story_count > 0) {
@@ -129,6 +424,7 @@ class SimpleFamilyTree {
             const photo = document.createElementNS('http://www.w3.org/2000/svg', 'image');
             photo.setAttribute('x', person.x - 25);
             photo.setAttribute('y', person.y - 25);
+            photo.setAttribute('width', '50');
             photo.setAttribute('height', '50');
             photo.setAttribute('href', `/familyTimeline/api/person-photo/${person.id}`);
             photo.setAttribute('clip-path', 'circle(22px)');
@@ -157,23 +453,31 @@ class SimpleFamilyTree {
         nameLabel.setAttribute('fill', '#2F4F2F');
         nameLabel.textContent = `${person.first_name} ${person.last_name || ''}`.trim();
         
-        group.appendChild(leaf);
         group.appendChild(nameLabel);
         
         // Click handler for context menu
         group.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.showContextMenu(person.id, e);
+            console.log('Node clicked - Person ID:', person.id, 'Person object:', person);
+            
+            if (person.id) {
+                this.showContextMenu(person.id, e);
+            } else {
+                console.error('Person node clicked but no ID found:', person);
+                alert('Error: Person data is incomplete. Please refresh the page.');
+            }
         });
         
         container.appendChild(group);
     }
+    
     
     createTreeContainer() {
         const container = document.getElementById(this.containerId);
         if (!container) return;
         
         // Updated context menu to include "View Stories"
+        // Update this part of your createTreeContainer function:
         container.innerHTML = `
             <div class="simple-tree-canvas">
                 <svg id="familyTreeSVG" width="100%" height="100%" viewBox="0 0 1400 1000">
@@ -199,7 +503,7 @@ class SimpleFamilyTree {
                     <span id="zoomLevel">100%</span>
                     <button id="zoomIn" class="control-btn">+</button>
                 </div>
-                <button id="centerTreeBtn" class="control-btn">🎯 Center</button>
+                <button id="centerTreeBtn" class="control-btn">🎯 Center Tree</button>
             </div>
             
             <!-- Context Menu -->
@@ -221,6 +525,7 @@ class SimpleFamilyTree {
         this.setupControlButtons();
         this.setupContextMenu();
         this.setupFormHandlers();
+        this.setupModalEventListeners();
     }
     
     setupTreeInteractions() {
@@ -287,35 +592,69 @@ class SimpleFamilyTree {
     }
     
     setupContextMenu() {
-        document.getElementById('viewStories')?.addEventListener('click', () => {
-            this.hideContextMenu();
-            this.openPersonDetailModal(this.selectedPerson);
-        });
+        // Make sure we're getting the right elements and adding proper event listeners
+        const viewStoriesBtn = document.getElementById('viewStories');
+        const addStoryBtn = document.getElementById('addStory');
+        const addSpouseBtn = document.getElementById('addSpouse');
+        const addChildBtn = document.getElementById('addChild');
+        const editPersonBtn = document.getElementById('editPerson');
+        const deletePersonBtn = document.getElementById('deletePerson');
         
-        document.getElementById('addStory')?.addEventListener('click', () => {
-            this.hideContextMenu();
-            this.openAddStoryModal(this.selectedPerson);
-        });
+        if (viewStoriesBtn) {
+            viewStoriesBtn.addEventListener('click', () => {
+                console.log('View stories clicked, selectedPerson:', this.selectedPerson);
+                this.hideContextMenu();
+                this.openPersonDetailModal(this.selectedPerson);
+            });
+        }
         
-        document.getElementById('addSpouse')?.addEventListener('click', () => {
-            this.hideContextMenu();
-            this.openAddPersonModal('spouse');
-        });
+        if (addStoryBtn) {
+            addStoryBtn.addEventListener('click', () => {
+                console.log('Add story clicked, selectedPerson:', this.selectedPerson);
+                this.hideContextMenu();
+                this.openAddStoryModal(this.selectedPerson);
+            });
+        }
         
-        document.getElementById('addChild')?.addEventListener('click', () => {
-            this.hideContextMenu();
-            this.openAddPersonModal('child');
-        });
+        if (addSpouseBtn) {
+            addSpouseBtn.addEventListener('click', () => {
+                console.log('Add spouse clicked, selectedPerson:', this.selectedPerson);
+                this.hideContextMenu();
+                this.openAddPersonModal('spouse');
+            });
+        }
         
-        document.getElementById('editPerson')?.addEventListener('click', () => {
-            this.hideContextMenu();
-            this.openEditPersonModal(this.selectedPerson);
-        });
+        if (addChildBtn) {
+            addChildBtn.addEventListener('click', () => {
+                console.log('Add child clicked, selectedPerson:', this.selectedPerson);
+                this.hideContextMenu();
+                this.openAddPersonModal('child');
+            });
+        }
         
-        document.getElementById('deletePerson')?.addEventListener('click', () => {
-            this.hideContextMenu();
-            this.openDeleteConfirmationModal(this.selectedPerson);
-        });
+        if (editPersonBtn) {
+            editPersonBtn.addEventListener('click', () => {
+                console.log('Edit person clicked, selectedPerson:', this.selectedPerson);
+                console.log('typeof selectedPerson:', typeof this.selectedPerson);
+                this.hideContextMenu();
+                
+                // Make sure we have a valid person ID before calling edit
+                if (this.selectedPerson) {
+                    this.openEditPersonModal(this.selectedPerson);
+                } else {
+                    console.error('No person selected for editing');
+                    alert('Error: No person selected. Please try clicking on a person first.');
+                }
+            });
+        }
+        
+        if (deletePersonBtn) {
+            deletePersonBtn.addEventListener('click', () => {
+                console.log('Delete person clicked, selectedPerson:', this.selectedPerson);
+                this.hideContextMenu();
+                this.openDeleteConfirmationModal(this.selectedPerson);
+            });
+        }
     }
     
     setupFormHandlers() {
@@ -544,6 +883,18 @@ class SimpleFamilyTree {
     showContextMenu(personId, event) {
         console.log('Context menu for person ID:', personId, 'Type:', typeof personId);
         
+        // Convert to number if it's a string
+        if (typeof personId === 'string') {
+            personId = parseInt(personId);
+        }
+        
+        // Validate the person ID
+        if (!personId || isNaN(personId)) {
+            console.error('Invalid person ID provided to context menu:', personId);
+            alert('Error: Invalid person selection. Please try again.');
+            return;
+        }
+        
         this.selectedPerson = personId;
         const menu = document.getElementById('contextMenu');
         
@@ -566,8 +917,10 @@ class SimpleFamilyTree {
     }
     
     hideContextMenu() {
-        document.getElementById('contextMenu').style.display = 'none';
-        this.selectedPerson = null;
+        const menu = document.getElementById('contextMenu');
+        if (menu) {
+            menu.style.display = 'none';
+        }
     }
     
     updateTreeTransform() {
@@ -1044,38 +1397,26 @@ class SimpleFamilyTree {
     }
     
     populatePersonModal(person, stories) {
-        // Store current person ID
+        // Store current person ID for the Add Story button
         this.selectedPerson = person.id;
         
         // Update modal content
         document.getElementById('personName').textContent = 
             `${person.first_name} ${person.last_name || ''}`.trim();
         
+        // Show basic person info in the header details
         document.getElementById('personDetails').innerHTML = `
-            <div class="person-info-grid">
-                ${person.maiden_name ? `<div><strong>Maiden Name:</strong> ${person.maiden_name}</div>` : ''}
-                ${person.nickname ? `<div><strong>Nickname:</strong> ${person.nickname}</div>` : ''}
-                ${person.birth_date ? `<div><strong>Born:</strong> ${new Date(person.birth_date).toLocaleDateString()}</div>` : ''}
-                ${person.death_date ? `<div><strong>Died:</strong> ${new Date(person.death_date).toLocaleDateString()}</div>` : ''}
-                ${person.birth_place ? `<div><strong>Birth Place:</strong> ${person.birth_place}</div>` : ''}
-                ${person.gender ? `<div><strong>Gender:</strong> ${person.gender}</div>` : ''}
-                <div><strong>Status:</strong> ${person.is_living ? 'Living' : 'Deceased'}</div>
-                ${person.bio_summary ? `<div class="bio-summary"><strong>Biography:</strong><br>${person.bio_summary}</div>` : ''}
+            <div style="color: #666; font-size: 14px; line-height: 1.4;">
+                ${person.birth_date ? `Born: ${new Date(person.birth_date).toLocaleDateString()}` : ''}
+                ${person.birth_date && !person.is_living && person.death_date ? ' | ' : ''}
+                ${!person.is_living && person.death_date ? `Died: ${new Date(person.death_date).toLocaleDateString()}` : ''}
+                ${!person.is_living && !person.death_date ? '(Deceased)' : ''}
             </div>
         `;
         
-        // Update photo
-        const photoContainer = document.getElementById('personPhoto');
-        if (person.has_photo) {
-            photoContainer.innerHTML = `<img src="/familyTimeline/api/person-photo/${person.id}" alt="${person.first_name}" style="max-width: 150px; border-radius: 10px;" />`;
-        } else {
-            photoContainer.innerHTML = `<div class="no-photo" style="width: 100px; height: 100px; border-radius: 50%; background: #e9ecef; display: flex; align-items: center; justify-content: center; font-size: 40px; font-weight: bold; color: #6c757d;">${person.first_name.charAt(0)}</div>`;
-        }
-        
-        // Display stories
+        // Display stories directly (no tabs needed)
         this.displayPersonStories(stories);
     }
-    
     displayPersonStories(stories) {
         const storiesContainer = document.getElementById('personStories');
         if (!storiesContainer) return;
