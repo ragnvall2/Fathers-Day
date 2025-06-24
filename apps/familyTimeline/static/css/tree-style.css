@@ -1,4 +1,428 @@
-/* Enhanced Organic Family Tree Styles */
+/* Story and Modal Enhancements */
+.person-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 2px solid #e0e0e0;
+}
+
+.person-info h2 {
+    color: #2E7D32;
+    margin-bottom: 5px;
+    font-size: 24px;
+}
+
+.person-details {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.person-actions {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Modal Tabs Enhanced */
+.modal-tabs {
+    display: flex;
+    border-bottom: 2px solid #e0e0e0;
+    margin-bottom: 20px;
+    background: rgba(46,125,50,0.05);
+    border-radius: 10px 10px 0 0;
+}
+
+.tab-btn {
+    padding: 15px 25px;
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: bold;
+    color: #666;
+    cursor: pointer;
+    border-bottom: 3px solid transparent;
+    transition: all 0.3s ease;
+    border-radius: 10px 10px 0 0;
+}
+
+.tab-btn.active {
+    color: #2E7D32;
+    background: white;
+    border-bottom-color: #2E7D32;
+}
+
+.tab-btn:hover {
+    color: #2E7D32;
+    background: rgba(46,125,50,0.1);
+}
+
+.tab-panel {
+    display: none;
+    min-height: 300px;
+}
+
+.tab-panel.active {
+    display: block;
+}
+
+/* Stories Container */
+.stories-container {
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.stories-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.stories-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.stories-container::-webkit-scrollbar-thumb {
+    background: #2E7D32;
+    border-radius: 10px;
+}
+
+.loading-stories {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Theme Sections */
+.theme-section {
+    margin-bottom: 30px;
+}
+
+.theme-header {
+    color: #2E7D32;
+    font-size: 20px;
+    margin-bottom: 15px;
+    padding: 10px 15px;
+    background: linear-gradient(45deg, rgba(46,125,50,0.1), rgba(46,125,50,0.05));
+    border-radius: 8px;
+    border-left: 4px solid #2E7D32;
+}
+
+.theme-stories {
+    margin-left: 20px;
+}
+
+/* Enhanced Story Items */
+.story-item {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
+    padding: 25px;
+    margin: 15px 0;
+    border-radius: 15px;
+    border-left: 5px solid #2E7D32;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.story-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+}
+
+.story-item.featured {
+    border-left-color: #FFD700;
+    background: linear-gradient(135deg, #fffdf7 0%, #fff8e1 100%);
+}
+
+.story-item.featured::before {
+    content: "⭐";
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    font-size: 20px;
+}
+
+.story-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.story-title {
+    font-size: 20px;
+    font-weight: bold;
+    color: #2E7D32;
+    margin-bottom: 8px;
+    line-height: 1.3;
+}
+
+.story-meta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.story-period, .story-year, .story-featured {
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 15px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.story-period {
+    background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+    color: #1976d2;
+}
+
+.story-year {
+    background: linear-gradient(45deg, #fff3e0, #ffcc80);
+    color: #f57c00;
+}
+
+.story-featured {
+    background: linear-gradient(45deg, #fff8e1, #ffecb3);
+    color: #ff8f00;
+}
+
+.story-author {
+    font-weight: bold;
+    color: #2E7D32;
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+.story-date {
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 15px;
+    font-style: italic;
+}
+
+/* Story Questions Enhanced */
+.story-questions {
+    margin: 20px 0;
+    background: linear-gradient(135deg, #f0f8ff 0%, #e8f4f8 100%);
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #2E7D32;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.question-answer {
+    margin-bottom: 15px;
+    padding: 10px 0;
+}
+
+.question-answer:last-child {
+    margin-bottom: 0;
+}
+
+.question {
+    font-weight: bold;
+    color: #2E7D32;
+    margin-bottom: 8px;
+    font-size: 15px;
+    line-height: 1.4;
+}
+
+.answer {
+    color: #333;
+    line-height: 1.6;
+    padding-left: 15px;
+    border-left: 3px solid rgba(46,125,50,0.3);
+    font-style: italic;
+    background: rgba(255,255,255,0.7);
+    padding: 10px 15px;
+    border-radius: 8px;
+}
+
+/* Story Text Enhanced */
+.story-text {
+    line-height: 1.7;
+    margin: 20px 0;
+    color: #333;
+    background: rgba(255,255,255,0.9);
+    padding: 20px;
+    border-radius: 10px;
+    border: 1px solid rgba(46,125,50,0.1);
+    font-size: 16px;
+}
+
+.story-photo {
+    max-width: 100%;
+    border-radius: 12px;
+    margin-top: 20px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    transition: transform 0.3s ease;
+}
+
+.story-photo:hover {
+    transform: scale(1.02);
+}
+
+/* Family Connections */
+.family-connections-list {
+    display: grid;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.connection-item {
+    background: linear-gradient(135deg, #f8fff8 0%, #f0f8ff 100%);
+    padding: 20px;
+    border-radius: 12px;
+    border-left: 4px solid #2E7D32;
+    transition: all 0.3s ease;
+}
+
+.connection-item:hover {
+    transform: translateX(5px);
+    box-shadow: 0 4px 15px rgba(46,125,50,0.1);
+}
+
+.connection-type {
+    font-weight: bold;
+    color: #2E7D32;
+    font-size: 14px;
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.connection-person {
+    font-size: 18px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 5px;
+}
+
+.connection-details {
+    font-size: 14px;
+    color: #666;
+    font-style: italic;
+}
+
+/* Theme Questions for Story Form */
+.theme-questions {
+    background: linear-gradient(135deg, #f0f8ff 0%, #e8f4f8 100%);
+    padding: 20px;
+    border-radius: 12px;
+    margin-top: 15px;
+    border: 2px solid rgba(46,125,50,0.1);
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.question-option {
+    margin: 15px 0;
+    padding: 15px;
+    background: rgba(255,255,255,0.9);
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+}
+
+.question-option:hover {
+    border-color: #2E7D32;
+    background: rgba(46,125,50,0.05);
+    transform: translateY(-1px);
+}
+
+.question-option label {
+    display: flex;
+    align-items: flex-start;
+    cursor: pointer;
+    margin-bottom: 0;
+    font-weight: normal;
+}
+
+.question-option input[type="checkbox"] {
+    margin-right: 15px;
+    width: auto;
+    transform: scale(1.3);
+    margin-top: 2px;
+}
+
+.question-text {
+    flex: 1;
+    color: #333;
+    line-height: 1.5;
+    font-size: 15px;
+}
+
+.answer-input {
+    margin-top: 15px;
+    padding-left: 30px;
+}
+
+.answer-input textarea {
+    border: 2px solid #e0e0e0;
+    min-height: 100px;
+    background: #fafafa;
+    border-radius: 8px;
+    font-family: Georgia, serif;
+    line-height: 1.5;
+}
+
+.answer-input textarea:focus {
+    background: white;
+    border-color: #2E7D32;
+    box-shadow: 0 0 0 3px rgba(46,125,50,0.1);
+}
+
+/* Form Enhancements */
+.form-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid rgba(46,125,50,0.1);
+}
+
+/* Responsive Enhancements */
+@media (max-width: 768px) {
+    .person-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .person-actions {
+        justify-content: stretch;
+    }
+    
+    .person-actions .btn {
+        flex: 1;
+        text-align: center;
+    }
+    
+    .modal-tabs {
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+    
+    .tab-btn {
+        min-width: 120px;
+        flex-shrink: 0;
+    }
+    
+    .story-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .story-meta {
+        justify-content: flex-start;
+    }
+}
+    /* Enhanced Organic Family Tree Styles */
 
 * {
     margin: 0;

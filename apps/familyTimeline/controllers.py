@@ -12,7 +12,8 @@ from .common import db, session, T, cache, auth, flash
 from .models import (
     create_family_tree, get_family_by_code, 
     get_family_tree_data, get_person_stories, save_person_story,
-    add_person, add_relationship, calculate_tree_positions
+    add_person, add_relationship, calculate_tree_positions,
+    update_generation_levels
 )
 
 # Main tree page
@@ -165,3 +166,163 @@ def add_relationship_endpoint():
         relationship_id=relationship_id,
         message="Relationship created successfully"
     )
+
+# Get person's stories API
+@action('api/person/<person_id>/stories')
+@action.uses(db)
+def get_person_stories_endpoint(person_id):
+    """Get all stories for a specific person"""
+    try:
+        person_id_int = int(person_id)
+    except ValueError:
+        raise HTTP(400, "Invalid person ID")
+    
+    person = db.people[person_id_int]
+    if not person:
+        raise HTTP(404, "Person not found")
+    
+    stories = get_person_stories(person_id_int)
+    return dict(stories=stories)
+
+# Add story API
+@action('api/story', method='POST')
+@action.uses(db)
+def add_story_endpoint():
+    """Add a new story for a person"""
+    data = request.json
+    
+    # Validate required fields
+    required_fields = ['family_code', 'person_id', 'title', 'author_name', 'theme', 'story_text']
+    for field in required_fields:
+        if field not in data:
+            raise HTTP(400, f"Missing required field: {field}")
+    
+    # Get family
+    family = get_family_by_code(data['family_code'])
+    if not family:
+        raise HTTP(404, "Family not found")
+    
+    # Verify person exists and belongs to family
+    person = db(
+        (db.people.id == data['person_id']) & 
+        (db.people.family_id == family.id)
+    ).select().first()
+    if not person:
+        raise HTTP(404, "Person not found in this family")
+    
+    # Handle photo data if present
+    photo_data = None
+    photo_filename = None
+    if 'photo_data' in data and data['photo_data']:
+        try:
+            photo_data_str = data['photo_data']
+            if ',' in photo_data_str:
+                photo_data_str = photo_data_str.split(',')[1]
+            photo_data = base64.b64decode(photo_data_str)
+            photo_filename = data.get('photo_filename', f"story_{data['title']}.jpg")
+        except Exception as e:
+            print(f"Error processing photo: {e}")
+    
+    # Save story
+    story_data = {
+        'title': data['title'],
+        'author_name': data['author_name'],
+        'theme': data['theme'],
+        'time_period': data.get('time_period', ''),
+        'year_occurred': data.get('year_occurred'),
+        'questions_and_answers': data.get('questions_and_answers', []),
+        'story_text': data['story_text'],
+        'photo_data': photo_data,
+        'photo_filename': photo_filename,
+        'is_featured': data.get('is_featured', False)
+    }
+    
+    story_id = save_person_story(
+        family.id,
+        data['person_id'],
+        **story_data
+    )
+    
+    return dict(
+        success=True,
+        story_id=story_id,
+        message="Story saved successfully"
+    )
+
+# Get themes API  
+@action('api/themes')
+@action.uses(db)
+def get_all_themes():
+    """Get all available themes"""
+    themes = db().select(
+        db.theme_questions.theme,
+        distinct=True,
+        orderby=db.theme_questions.theme
+    )
+    
+    theme_names = {
+        'childhood': 'Childhood',
+        'personality': 'Personality', 
+        'family_life': 'Family Life',
+        'career': 'Career & Work',
+        'adventures': 'Adventures & Travel',
+        'relationships': 'Relationships',
+        'wisdom': 'Wisdom & Lessons',
+        'memories': 'Personal Memories',
+        'general': 'General'
+    }
+    
+    result = []
+    for theme in themes:
+        result.append({
+            'key': theme.theme,
+            'name': theme_names.get(theme.theme, theme.theme.title())
+        })
+    
+    return dict(themes=result)
+
+# Get theme questions API
+@action('api/themes/<theme>/questions')
+@action.uses(db)
+def get_theme_questions(theme):
+    """Get all questions for a specific theme"""
+    questions = db(
+        (db.theme_questions.theme == theme) & 
+        (db.theme_questions.is_active == True)
+    ).select(orderby=db.theme_questions.order_index)
+    
+    result = []
+    for q in questions:
+        result.append({
+            'id': q.id,
+            'text': q.question_text,
+            'order': q.order_index
+        })
+    
+    return dict(questions=result)
+
+# Get story photo API
+@action('api/story-photo/<story_id>')
+@action.uses(db)
+def get_story_photo(story_id):
+    """Get photo for a story"""
+    try:
+        story_id_int = int(story_id)
+    except ValueError:
+        raise HTTP(400, "Invalid story ID")
+    
+    story = db.stories[story_id_int]
+    if not story or not story.photo_data:
+        raise HTTP(404, "Photo not found")
+    
+    # Determine content type
+    content_type = 'image/jpeg'
+    if story.photo_filename:
+        if story.photo_filename.lower().endswith('.png'):
+            content_type = 'image/png'
+        elif story.photo_filename.lower().endswith('.gif'):
+            content_type = 'image/gif'
+    
+    response.headers['Content-Type'] = content_type
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return story.photo_data
