@@ -1,5 +1,7 @@
 /**
- * Enhanced Organic Family Tree - Complete Version
+ * Enhanced Organic Family Tree - Complete Version with Edit/Delete
+ * 
+ * REPLACE YOUR ENTIRE apps/familyTimeline/static/js/familyTree.js FILE WITH THIS CODE
  */
 
 class OrganicFamilyTree {
@@ -126,9 +128,6 @@ class OrganicFamilyTree {
             <div class="organic-tree-controls">
                 <div class="control-group">
                     <button id="connectModeBtn" class="mode-btn">🔗 Connect Mode</button>
-                    <button id="addRootBtn" class="action-btn" ${this.people.length >= 2 ? 'style="display: none;"' : ''}>
-                        👫 Add Root Couple
-                    </button>
                 </div>
                 
                 <div class="zoom-controls">
@@ -222,10 +221,6 @@ class OrganicFamilyTree {
             this.openAddPersonModal();
         });
         
-        document.getElementById('addRootBtn')?.addEventListener('click', () => {
-            this.openAddRootCoupleModal();
-        });
-        
         // Settings button
         document.getElementById('settingsBtn')?.addEventListener('click', () => {
             alert('Tree settings feature coming soon! This will let you change tree style, colors, and display options.');
@@ -238,99 +233,154 @@ class OrganicFamilyTree {
         if (addPersonForm) {
             addPersonForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-                console.log('Add person form submitted');
-                
-                const formData = {
-                    family_code: this.familyCode,
-                    first_name: document.getElementById('firstName').value,
-                    last_name: document.getElementById('lastName').value || '',
-                    birth_date: document.getElementById('birthDate').value || null,
-                    gender: document.getElementById('gender').value || '',
-                    is_living: document.getElementById('isLiving') ? document.getElementById('isLiving').value === 'true' : true,
-                    generation_level: this.calculateGenerationLevel()
-                };
-                
-                console.log('Form data:', formData);
-                await this.addPerson(formData);
+                await this.handleAddPersonSubmit(e);
             });
         }
         
-        // Close buttons
-        document.querySelectorAll('.close').forEach(closeBtn => {
-            closeBtn.addEventListener('click', (e) => {
-                e.target.closest('.modal').style.display = 'none';
+        // Edit Person Form
+        const editPersonForm = document.getElementById('editPersonForm');
+        if (editPersonForm) {
+            editPersonForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleEditPersonSubmit(e);
             });
-        });
+        }
         
-        // Click outside modal to close
-        document.querySelectorAll('.modal').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    modal.style.display = 'none';
-                }
+        // Add Relationship Form
+        const addRelationshipForm = document.getElementById('addRelationshipForm');
+        if (addRelationshipForm) {
+            addRelationshipForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleAddRelationshipSubmit(e);
             });
-        });
+        }
+        
+        // Story Form
+        const storyForm = document.getElementById('storyForm');
+        if (storyForm) {
+            storyForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await this.handleStorySubmit(e);
+            });
+        }
+        
+        // Photo upload handlers
+        this.setupPhotoUploadHandlers();
+    }
+    
+    setupPhotoUploadHandlers() {
+        // Add person photo upload
+        const addPhotoInput = document.getElementById('addPersonPhoto');
+        if (addPhotoInput) {
+            addPhotoInput.addEventListener('change', (e) => {
+                this.handlePhotoUpload(e, 'addPersonPhotoPreview');
+            });
+        }
+        
+        // Edit person photo upload
+        const editPhotoInput = document.getElementById('editPersonPhoto');
+        if (editPhotoInput) {
+            editPhotoInput.addEventListener('change', (e) => {
+                this.handlePhotoUpload(e, 'editPersonPhotoPreview');
+            });
+        }
+        
+        // Story photo upload
+        const storyPhotoInput = document.getElementById('storyPhoto');
+        if (storyPhotoInput) {
+            storyPhotoInput.addEventListener('change', (e) => {
+                this.handlePhotoUpload(e, 'storyPhotoPreview');
+            });
+        }
+    }
+    
+    handlePhotoUpload(event, previewId) {
+        const file = event.target.files[0];
+        const preview = document.getElementById(previewId);
+        
+        if (file && preview) {
+            if (file.size > 5 * 1024 * 1024) {
+                alert('Photo must be smaller than 5MB');
+                event.target.value = '';
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                preview.src = e.target.result;
+                preview.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
     }
     
     updateConnectionMode() {
         const btn = document.getElementById('connectModeBtn');
-        const svg = document.getElementById('organicTreeSVG');
+        if (btn) {
+            btn.classList.toggle('active', this.connectingMode);
+            btn.textContent = this.connectingMode ? '❌ Exit Connect' : '🔗 Connect Mode';
+        }
         
-        if (this.connectingMode) {
-            btn.textContent = '❌ Exit Connect Mode';
-            btn.classList.add('active');
-            svg.style.cursor = 'crosshair';
-            this.showConnectionHints();
-        } else {
-            btn.textContent = '🔗 Connect Mode';
-            btn.classList.remove('active');
-            svg.style.cursor = 'grab';
-            this.hideConnectionHints();
+        if (!this.connectingMode) {
             this.connectionStart = null;
             this.hideConnectionLine();
         }
     }
     
-    showConnectionHints() {
-        document.querySelectorAll('.person-node').forEach(node => {
-            node.classList.add('connectable');
-        });
-    }
-    
-    hideConnectionHints() {
-        document.querySelectorAll('.person-node').forEach(node => {
-            node.classList.remove('connectable');
-        });
-    }
-    
-    updateConnectionLine(event) {
+    updateConnectionLine(e) {
         const svg = document.getElementById('organicTreeSVG');
-        const line = document.getElementById('connectionLine');
         const rect = svg.getBoundingClientRect();
+        const line = document.getElementById('connectionLine');
         
-        const startNode = document.querySelector(`[data-person-id="${this.connectionStart.id}"]`);
-        if (!startNode) return;
-        
-        const transform = startNode.getAttribute('transform');
-        const translateMatch = transform.match(/translate\(([^,]+),([^)]+)\)/);
-        
-        if (translateMatch) {
-            const startX = parseFloat(translateMatch[1]);
-            const startY = parseFloat(translateMatch[2]);
-            const endX = (event.clientX - rect.left - this.panX) / this.scale;
-            const endY = (event.clientY - rect.top - this.panY) / this.scale;
-            
-            line.setAttribute('x1', startX);
-            line.setAttribute('y1', startY);
-            line.setAttribute('x2', endX);
-            line.setAttribute('y2', endY);
-            line.setAttribute('opacity', '1');
+        if (line && this.connectionStart) {
+            const startNode = document.querySelector(`[data-person-id="${this.connectionStart}"]`);
+            if (startNode) {
+                const startX = parseFloat(startNode.getAttribute('cx')) || parseFloat(startNode.getAttribute('x')) + 50;
+                const startY = parseFloat(startNode.getAttribute('cy')) || parseFloat(startNode.getAttribute('y')) + 50;
+                const endX = (e.clientX - rect.left) / this.scale - this.panX / this.scale;
+                const endY = (e.clientY - rect.top) / this.scale - this.panY / this.scale;
+                
+                line.setAttribute('x1', startX);
+                line.setAttribute('y1', startY);
+                line.setAttribute('x2', endX);
+                line.setAttribute('y2', endY);
+                line.setAttribute('opacity', '1');
+            }
         }
     }
     
     hideConnectionLine() {
         const line = document.getElementById('connectionLine');
-        line.setAttribute('opacity', '0');
+        if (line) {
+            line.setAttribute('opacity', '0');
+        }
+    }
+    
+    updateTreeTransform() {
+        const treeStructure = document.getElementById('treeStructure');
+        const branchConnections = document.getElementById('branchConnections');
+        const peopleNodes = document.getElementById('peopleNodes');
+        
+        const transform = `translate(${this.panX}, ${this.panY}) scale(${this.scale})`;
+        
+        if (treeStructure) treeStructure.setAttribute('transform', transform);
+        if (branchConnections) branchConnections.setAttribute('transform', transform);
+        if (peopleNodes) peopleNodes.setAttribute('transform', transform);
+    }
+    
+    updateZoomDisplay() {
+        const zoomLevel = document.getElementById('zoomLevel');
+        if (zoomLevel) {
+            zoomLevel.textContent = `${Math.round(this.scale * 100)}%`;
+        }
+    }
+    
+    centerTree() {
+        this.scale = 1;
+        this.panX = 0;
+        this.panY = 0;
+        this.updateTreeTransform();
+        this.updateZoomDisplay();
     }
     
     renderTree() {
@@ -339,1076 +389,966 @@ class OrganicFamilyTree {
             return;
         }
         
-        this.calculateOrganicLayout();
-        this.renderTreeStructure();
+        this.clearTree();
+        this.identifyRootCouple();
+        this.calculateOrganicTreeLayout();
+        this.renderOrganicTrunk();
+        this.renderOrganicBranches();
         this.renderPeople();
-        this.renderConnections();
-        this.centerTree();
+        this.addNatureDecorations();
     }
     
-    renderEmptyState() {
-        const peopleContainer = document.getElementById('peopleNodes');
-        if (!peopleContainer) return;
+    clearTree() {
+        const peopleNodes = document.getElementById('peopleNodes');
+        const branchConnections = document.getElementById('branchConnections');
         
-        peopleContainer.innerHTML = `
-            <text x="700" y="400" text-anchor="middle" font-family="Georgia, serif" 
-                  font-size="24" fill="#8B4513" font-weight="bold">
-                🌱 Plant your family tree
-            </text>
-            <text x="700" y="430" text-anchor="middle" font-family="Georgia, serif" 
-                  font-size="16" fill="#666">
-                Start by adding your root couple
-            </text>
-        `;
+        if (peopleNodes) peopleNodes.innerHTML = '';
+        if (branchConnections) branchConnections.innerHTML = '';
+    }
+
+    calculateOrganicTreeLayout() {
+        // Create generation mapping
+        const generations = this.buildGenerationHierarchy();
+        
+        // Position root couple in trunk
+        this.positionRootCouple();
+        
+        // Position each generation on branches
+        Object.keys(generations).forEach(gen => {
+            const genLevel = parseInt(gen);
+            if (genLevel > 0) { // Skip root generation (gen 0)
+                this.positionGeneration(generations[gen], genLevel);
+            }
+        });
     }
     
-    calculateOrganicLayout() {
-        if (this.people.length === 0) return;
-        
+    positionPeople() {
+        // Create generation groups
         const generations = {};
         
         this.people.forEach(person => {
-            const level = person.generation_level || 0;
-            if (!generations[level]) generations[level] = [];
-            generations[level].push(person);
+            const gen = person.generation_level || 0;
+            if (!generations[gen]) generations[gen] = [];
+            generations[gen].push(person);
         });
         
-        const baseY = 800;
-        const generationHeight = 120;
-        const centerX = 700;
-        
-        Object.keys(generations).sort((a, b) => parseInt(a) - parseInt(b)).forEach(level => {
-            const levelNum = parseInt(level);
-            const people = generations[level];
-            const y = baseY - (levelNum * generationHeight);
+        // Position people in organic tree layout
+        Object.keys(generations).forEach(gen => {
+            const genLevel = parseInt(gen);
+            const people = generations[gen];
+            const baseY = 800 - (genLevel * 150); // Older generations higher
             
-            this.positionGeneration(people, centerX, y, levelNum);
+            people.forEach((person, index) => {
+                const totalWidth = Math.max(people.length * 200, 400);
+                const startX = 700 - (totalWidth / 2);
+                const x = startX + (index * (totalWidth / people.length)) + Math.random() * 40 - 20;
+                const y = baseY + Math.random() * 40 - 20;
+                
+                person.x = x;
+                person.y = y;
+            });
         });
+        
+        // Special positioning for root couple if they exist
+        if (this.rootCouple.length === 2) {
+            this.rootCouple[0].x = 650 + Math.random() * 20 - 10;
+            this.rootCouple[0].y = 750 + Math.random() * 20 - 10;
+            this.rootCouple[1].x = 750 + Math.random() * 20 - 10;
+            this.rootCouple[1].y = 750 + Math.random() * 20 - 10;
+        }
     }
     
-    positionGeneration(people, centerX, y, generationLevel) {
-        if (people.length === 1) {
-            people[0].x = centerX;
-            people[0].y = y;
-            return;
-        }
+    renderBranches() {
+        const branchConnections = document.getElementById('branchConnections');
+        if (!branchConnections) return;
         
-        if (generationLevel === 0 && people.length === 2) {
-            people[0].x = centerX - 60;
-            people[0].y = y;
-            people[1].x = centerX + 60;
-            people[1].y = y;
-            return;
-        }
-        
-        const spacing = Math.max(140, 800 / Math.max(people.length, 1));
-        const startX = centerX - ((people.length - 1) * spacing) / 2;
-        
-        people.forEach((person, index) => {
-            person.x = startX + (index * spacing);
-            person.y = y;
+        // Draw organic branches for parent-child relationships
+        this.relationships.forEach(rel => {
+            if (rel.relationship_type === 'child') {
+                const parent = this.people.find(p => p.id === rel.person1_id);
+                const child = this.people.find(p => p.id === rel.person2_id);
+                
+                if (parent && child) {
+                    this.drawOrganicBranch(branchConnections, parent, child);
+                }
+            }
         });
-    }
-    
-    renderTreeStructure() {
-        const treeStructure = document.getElementById('treeStructure');
-        if (!treeStructure) return;
         
-        const existingBranches = treeStructure.querySelectorAll('.organic-branch');
-        existingBranches.forEach(branch => branch.remove());
-        
-        this.drawOrganicBranches();
-    }
-    
-    drawOrganicBranches() {
-        const treeStructure = document.getElementById('treeStructure');
-        const parentChildRels = this.relationships.filter(rel => rel.relationship_type === 'parent');
-        
-        parentChildRels.forEach(rel => {
-            const parent = this.people.find(p => p.id === rel.person1_id);
-            const child = this.people.find(p => p.id === rel.person2_id);
-            
-            if (parent && child && parent.x !== undefined && child.x !== undefined) {
-                this.createOrganicBranch(parent, child, treeStructure);
+        // Draw marriage connections as gentle curves
+        this.relationships.forEach(rel => {
+            if (rel.relationship_type === 'spouse') {
+                const person1 = this.people.find(p => p.id === rel.person1_id);
+                const person2 = this.people.find(p => p.id === rel.person2_id);
+                
+                if (person1 && person2) {
+                    this.drawMarriageConnection(branchConnections, person1, person2);
+                }
             }
         });
     }
     
-    createOrganicBranch(parent, child, container) {
-        const controlPoint1X = parent.x + (child.x - parent.x) * 0.3;
-        const controlPoint1Y = parent.y - 30;
-        const controlPoint2X = parent.x + (child.x - parent.x) * 0.7;
-        const controlPoint2Y = child.y + 30;
+    drawOrganicBranch(container, parent, child) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
         
-        const branchPath = `M ${parent.x} ${parent.y - 30} 
-                           C ${controlPoint1X} ${controlPoint1Y} 
-                             ${controlPoint2X} ${controlPoint2Y} 
-                             ${child.x} ${child.y + 30}`;
+        const startX = parent.x;
+        const startY = parent.y + 40;
+        const endX = child.x;
+        const endY = child.y - 40;
         
-        const branch = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        branch.setAttribute('d', branchPath);
-        branch.setAttribute('stroke', 'url(#branchGradient)');
-        branch.setAttribute('stroke-width', '8');
-        branch.setAttribute('fill', 'none');
-        branch.setAttribute('class', 'organic-branch');
-        branch.setAttribute('filter', 'url(#organicShadow)');
+        const midY = startY + (endY - startY) * 0.7;
+        const controlX1 = startX + Math.random() * 60 - 30;
+        const controlY1 = midY + Math.random() * 40 - 20;
+        const controlX2 = endX + Math.random() * 60 - 30;
+        const controlY2 = midY + Math.random() * 40 - 20;
         
-        const pathLength = branch.getTotalLength();
-        branch.style.strokeDasharray = pathLength;
-        branch.style.strokeDashoffset = pathLength;
-        branch.style.animation = 'growBranch 1s ease-out forwards';
+        const d = `M ${startX} ${startY} 
+                   C ${controlX1} ${controlY1}, ${controlX2} ${controlY2}, ${endX} ${endY}`;
         
-        container.appendChild(branch);
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', 'url(#branchGradient)');
+        path.setAttribute('stroke-width', Math.random() * 4 + 6);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('filter', 'url(#organicShadow)');
+        path.setAttribute('opacity', '0.8');
+        
+        container.appendChild(path);
+    }
+    
+    drawMarriageConnection(container, person1, person2) {
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        
+        const startX = person1.x;
+        const startY = person1.y;
+        const endX = person2.x;
+        const endY = person2.y;
+        
+        const midX = (startX + endX) / 2;
+        const midY = (startY + endY) / 2 - 30;
+        
+        const d = `M ${startX} ${startY} Q ${midX} ${midY} ${endX} ${endY}`;
+        
+        path.setAttribute('d', d);
+        path.setAttribute('stroke', '#FFD700');
+        path.setAttribute('stroke-width', '4');
+        path.setAttribute('fill', 'none');
+        path.setAttribute('opacity', '0.7');
+        path.setAttribute('stroke-dasharray', '8,4');
+        
+        container.appendChild(path);
     }
     
     renderPeople() {
-        const peopleContainer = document.getElementById('peopleNodes');
-        if (!peopleContainer) return;
-        
-        peopleContainer.innerHTML = '';
+        const peopleNodes = document.getElementById('peopleNodes');
+        if (!peopleNodes) return;
         
         this.people.forEach(person => {
-            if (person.x !== undefined && person.y !== undefined) {
-                const personGroup = this.createOrganicPersonNode(person);
-                peopleContainer.appendChild(personGroup);
-            }
+            this.createPersonNode(peopleNodes, person);
         });
     }
     
-    createOrganicPersonNode(person) {
+    createPersonNode(container, person) {
         const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        group.setAttribute('class', 'person-node organic-person');
+        group.setAttribute('class', 'person-node');
         group.setAttribute('data-person-id', person.id);
-        group.setAttribute('transform', `translate(${person.x}, ${person.y})`);
         group.style.cursor = 'pointer';
         
-        const leaf = this.createLeafShape();
+        // Create organic leaf shape
+        const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
+        leaf.setAttribute('cx', person.x);
+        leaf.setAttribute('cy', person.y);
+        leaf.setAttribute('rx', '45');
+        leaf.setAttribute('ry', '35');
         leaf.setAttribute('fill', 'url(#leafGradient)');
-        leaf.setAttribute('stroke', this.getPersonColor(person));
-        leaf.setAttribute('stroke-width', '3');
+        leaf.setAttribute('stroke', '#228B22');
+        leaf.setAttribute('stroke-width', '2');
         leaf.setAttribute('filter', 'url(#leafShadow)');
-        group.appendChild(leaf);
+        leaf.setAttribute('transform', `rotate(${Math.random() * 30 - 15} ${person.x} ${person.y})`);
         
+        // Person photo or initial
         if (person.has_photo) {
-            const photoCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-            photoCircle.setAttribute('cx', '0');
-            photoCircle.setAttribute('cy', '0');
-            photoCircle.setAttribute('r', '25');
-            photoCircle.setAttribute('fill', `url(#photo-${person.id})`);
-            
-            this.createPhotoPattern(person.id);
-            group.appendChild(photoCircle);
+            const photo = document.createElementNS('http://www.w3.org/2000/svg', 'image');
+            photo.setAttribute('x', person.x - 25);
+            photo.setAttribute('y', person.y - 25);
+            photo.setAttribute('width', '50');
+            photo.setAttribute('height', '50');
+            photo.setAttribute('href', `/familyTimeline/api/person-photo/${person.id}`);
+            photo.setAttribute('clip-path', 'circle(22px)');
+            group.appendChild(photo);
         } else {
-            const initials = this.getInitials(person.first_name, person.last_name);
-            const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            text.setAttribute('x', '0');
-            text.setAttribute('y', '5');
-            text.setAttribute('text-anchor', 'middle');
-            text.setAttribute('font-family', 'Georgia, serif');
-            text.setAttribute('font-size', '18');
-            text.setAttribute('font-weight', 'bold');
-            text.setAttribute('fill', '#2F4F2F');
-            text.textContent = initials;
-            group.appendChild(text);
+            const initial = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            initial.setAttribute('x', person.x);
+            initial.setAttribute('y', person.y + 5);
+            initial.setAttribute('text-anchor', 'middle');
+            initial.setAttribute('font-family', 'Arial, sans-serif');
+            initial.setAttribute('font-size', '20');
+            initial.setAttribute('font-weight', 'bold');
+            initial.setAttribute('fill', '#2F4F2F');
+            initial.textContent = person.first_name.charAt(0);
+            group.appendChild(initial);
         }
         
-        const nameText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        nameText.setAttribute('x', '0');
-        nameText.setAttribute('y', '65');
-        nameText.setAttribute('text-anchor', 'middle');
-        nameText.setAttribute('font-family', 'Georgia, serif');
-        nameText.setAttribute('font-size', '14');
-        nameText.setAttribute('font-weight', 'bold');
-        nameText.setAttribute('fill', '#8B4513');
-        nameText.textContent = person.full_name;
-        group.appendChild(nameText);
+        // Name label
+        const nameLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        nameLabel.setAttribute('x', person.x);
+        nameLabel.setAttribute('y', person.y + 55);
+        nameLabel.setAttribute('text-anchor', 'middle');
+        nameLabel.setAttribute('font-family', 'Arial, sans-serif');
+        nameLabel.setAttribute('font-size', '12');
+        nameLabel.setAttribute('font-weight', 'bold');
+        nameLabel.setAttribute('fill', '#2F4F2F');
+        nameLabel.textContent = `${person.first_name} ${person.last_name || ''}`.trim();
         
-        if (person.birth_date || person.death_date) {
-            const dates = this.formatDateRange(person.birth_date, person.death_date, person.is_living);
-            const dateText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            dateText.setAttribute('x', '0');
-            dateText.setAttribute('y', '80');
-            dateText.setAttribute('text-anchor', 'middle');
-            dateText.setAttribute('font-family', 'Georgia, serif');
-            dateText.setAttribute('font-size', '11');
-            dateText.setAttribute('fill', '#666');
-            dateText.textContent = dates;
-            group.appendChild(dateText);
-        }
+        group.appendChild(leaf);
+        group.appendChild(nameLabel);
         
-        this.setupPersonInteractions(group, person);
-        return group;
-    }
-    
-    createLeafShape() {
-        const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        const leafPath = 'M 0,-40 C -25,-35 -35,-10 -30,10 C -25,25 -10,35 0,40 C 10,35 25,25 30,10 C 35,-10 25,-35 0,-40 Z';
-        leaf.setAttribute('d', leafPath);
-        return leaf;
-    }
-    
-    setupPersonInteractions(group, person) {
+        // Event handlers
         group.addEventListener('click', (e) => {
             e.stopPropagation();
-            
             if (this.connectingMode) {
-                this.handleConnectionClick(person);
+                this.handleConnectionClick(person.id);
             } else {
-                this.selectPerson(person);
+                this.showPersonDetails(person.id);
             }
         });
         
-        group.addEventListener('mouseenter', () => {
-            group.style.transform = group.getAttribute('transform') + ' scale(1.1)';
-            group.style.filter = 'brightness(1.1)';
-        });
-        
-        group.addEventListener('mouseleave', () => {
-            group.style.transform = group.getAttribute('transform');
-            group.style.filter = 'brightness(1)';
-        });
-        
-        let isDragging = false;
-        
-        group.addEventListener('mousedown', (e) => {
-            if (e.ctrlKey || e.metaKey) {
-                isDragging = true;
-                this.connectionStart = person;
-                e.preventDefault();
-            }
-        });
-        
-        group.addEventListener('mouseup', (e) => {
-            if (isDragging && this.connectionStart && this.connectionStart.id !== person.id) {
-                this.showRelationshipModal(this.connectionStart, person);
-                isDragging = false;
-                this.connectionStart = null;
-                this.hideConnectionLine();
-            }
-        });
+        container.appendChild(group);
     }
     
-    handleConnectionClick(person) {
+    handleConnectionClick(personId) {
         if (!this.connectionStart) {
-            this.connectionStart = person;
-            this.highlightPerson(person, 'connection-start');
-        } else if (this.connectionStart.id === person.id) {
+            this.connectionStart = personId;
+            this.highlightPersonForConnection(personId);
+        } else if (this.connectionStart !== personId) {
+            this.openRelationshipModal(this.connectionStart, personId);
             this.connectionStart = null;
-            this.clearHighlights();
+            this.connectingMode = false;
+            this.updateConnectionMode();
             this.hideConnectionLine();
-        } else {
-            this.showRelationshipModal(this.connectionStart, person);
-            this.clearHighlights();
-            this.hideConnectionLine();
+            this.removeConnectionHighlight();
         }
     }
     
-    highlightPerson(person, className) {
-        const node = document.querySelector(`[data-person-id="${person.id}"]`);
+    highlightPersonForConnection(personId) {
+        const node = document.querySelector(`[data-person-id="${personId}"]`);
         if (node) {
-            node.classList.add(className);
+            node.classList.add('connection-start');
         }
     }
     
-    clearHighlights() {
-        document.querySelectorAll('.person-node').forEach(node => {
-            node.classList.remove('connection-start', 'connection-end');
+    removeConnectionHighlight() {
+        document.querySelectorAll('.connection-start').forEach(node => {
+            node.classList.remove('connection-start');
         });
     }
     
-    showRelationshipModal(person1, person2) {
-        this.createRelationshipModal(person1, person2);
-    }
-    
-    createRelationshipModal(person1, person2) {
-        const existingModal = document.getElementById('relationshipModal');
-        if (existingModal) {
-            existingModal.remove();
+    addDecorations() {
+        // Add some decorative elements to make the tree more organic
+        const treeStructure = document.getElementById('treeStructure');
+        if (!treeStructure) return;
+        
+        // Add small birds
+        for (let i = 0; i < 3; i++) {
+            const bird = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            bird.setAttribute('x', 200 + Math.random() * 1000);
+            bird.setAttribute('y', 100 + Math.random() * 200);
+            bird.setAttribute('font-size', '16');
+            bird.setAttribute('fill', '#4169E1');
+            bird.textContent = '🐦';
+            bird.style.opacity = '0.6';
+            treeStructure.appendChild(bird);
         }
         
-        const modal = document.createElement('div');
-        modal.id = 'relationshipModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content relationship-modal">
-                <span class="close">&times;</span>
-                <h2>Connect Family Members</h2>
-                
-                <div class="relationship-persons">
-                    <div class="relationship-person">
-                        <div class="name">${person1.full_name}</div>
-                        <div class="details">${this.formatDateRange(person1.birth_date, person1.death_date, person1.is_living)}</div>
-                    </div>
-                    <div class="relationship-arrow">🔗</div>
-                    <div class="relationship-person">
-                        <div class="name">${person2.full_name}</div>
-                        <div class="details">${this.formatDateRange(person2.birth_date, person2.death_date, person2.is_living)}</div>
-                    </div>
-                </div>
-                
-                <p style="margin: 20px 0; color: #666; font-size: 16px;">
-                    How is <strong>${person1.first_name}</strong> related to <strong>${person2.first_name}</strong>?
-                </p>
-                
-                <div class="relationship-options">
-                    <button class="relationship-btn" data-relation="spouse">
-                        💑 Spouse/Partner
-                    </button>
-                    <button class="relationship-btn" data-relation="parent">
-                        👨‍👧‍👦 ${person1.first_name} is ${person2.first_name}'s Parent
-                    </button>
-                    <button class="relationship-btn" data-relation="child">
-                        👶 ${person1.first_name} is ${person2.first_name}'s Child
-                    </button>
-                    <button class="relationship-btn" data-relation="sibling">
-                        👫 Siblings
-                    </button>
-                    <button class="relationship-btn extended" data-relation="grandparent">
-                        👴 ${person1.first_name} is ${person2.first_name}'s Grandparent
-                    </button>
-                    <button class="relationship-btn extended" data-relation="grandchild">
-                        👧 ${person1.first_name} is ${person2.first_name}'s Grandchild
-                    </button>
-                    <button class="relationship-btn extended" data-relation="aunt_uncle">
-                        👩‍🦳 Aunt/Uncle & Niece/Nephew
-                    </button>
-                    <button class="relationship-btn extended" data-relation="cousin">
-                        👥 Cousins
-                    </button>
-                </div>
-                
-                <div style="margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee;">
-                    <button class="btn secondary" onclick="document.getElementById('relationshipModal').style.display='none'">
-                        Cancel
-                    </button>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
-        
-        modal.querySelector('.close').addEventListener('click', () => {
-            modal.style.display = 'none';
-            this.connectionStart = null;
-        });
-        
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-                this.connectionStart = null;
-            }
-        });
-        
-        modal.querySelectorAll('.relationship-btn').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                const relationType = btn.getAttribute('data-relation');
-                await this.createRelationship(person1, person2, relationType);
-                modal.style.display = 'none';
-                this.connectionStart = null;
-                this.connectingMode = false;
-                this.updateConnectionMode();
-            });
-        });
-    }
-    
-    async createRelationship(person1, person2, relationType) {
-        try {
-            const relationshipData = {
-                family_code: this.familyCode,
-                person1_id: person1.id,
-                person2_id: person2.id,
-                relationship_type: relationType
-            };
-            
-            const response = await fetch('/familyTimeline/api/relationship', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(relationshipData)
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                console.log('Relationship created:', result);
-                
-                await this.loadTreeData();
-                this.renderTree();
-                
-                this.showSuccessMessage(`Connected ${person1.first_name} and ${person2.first_name}!`);
-            } else {
-                throw new Error('Failed to create relationship');
-            }
-        } catch (error) {
-            console.error('Error creating relationship:', error);
-            alert('Error creating relationship. Please try again.');
+        // Add floating leaves
+        for (let i = 0; i < 5; i++) {
+            const leaf = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+            leaf.setAttribute('x', 100 + Math.random() * 1200);
+            leaf.setAttribute('y', 50 + Math.random() * 300);
+            leaf.setAttribute('font-size', '14');
+            leaf.setAttribute('fill', '#32CD32');
+            leaf.textContent = '🍃';
+            leaf.style.opacity = '0.4';
+            treeStructure.appendChild(leaf);
         }
     }
     
-    showSuccessMessage(message) {
-        const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 100px;
-            right: 20px;
-            background: linear-gradient(45deg, #4CAF50, #2E7D32);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(76,175,80,0.3);
-            z-index: 3000;
-            font-weight: bold;
-            animation: slideInRight 0.3s ease;
-        `;
-        notification.textContent = message;
+    renderEmptyState() {
+        const peopleNodes = document.getElementById('peopleNodes');
+        if (!peopleNodes) return;
         
-        document.body.appendChild(notification);
+        const emptyMessage = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        emptyMessage.setAttribute('x', '700');
+        emptyMessage.setAttribute('y', '400');
+        emptyMessage.setAttribute('text-anchor', 'middle');
+        emptyMessage.setAttribute('font-family', 'Arial, sans-serif');
+        emptyMessage.setAttribute('font-size', '24');
+        emptyMessage.setAttribute('fill', '#8B7355');
+        emptyMessage.textContent = 'Your family tree is ready to grow! Click "Add Person" to start.';
         
-        setTimeout(() => {
-            notification.style.animation = 'slideOutRight 0.3s ease';
-            setTimeout(() => notification.remove(), 300);
-        }, 3000);
+        peopleNodes.appendChild(emptyMessage);
     }
     
-    calculateGenerationLevel() {
-        if (this.people.length === 0) return 0;
-        if (this.people.length === 1) return 0;
-        
-        const maxGeneration = Math.max(...this.people.map(p => p.generation_level || 0));
-        return maxGeneration + 1;
-    }
-    
-    async addPerson(personData) {
-        console.log('Adding person:', personData);
-        try {
-            const response = await fetch('/familyTimeline/api/person', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(personData)
-            });
-            
-            console.log('Response status:', response.status);
-            const result = await response.json();
-            console.log('Response data:', result);
-            
-            if (response.ok && result.success) {
-                console.log('Person added successfully!');
-                await this.loadTreeData();
-                this.renderTree();
-                document.getElementById('addPersonModal').style.display = 'none';
-                document.getElementById('addPersonForm').reset();
-                this.showSuccessMessage(`${personData.first_name} added to the family tree!`);
-                
-                if (this.people.length >= 2) {
-                    const addRootBtn = document.getElementById('addRootBtn');
-                    if (addRootBtn) addRootBtn.style.display = 'none';
-                }
-            } else {
-                console.error('Error adding person:', result);
-                alert('Error adding person: ' + (result.message || 'Unknown error'));
-            }
-        } catch (error) {
-            console.error('Network error adding person:', error);
-            alert('Network error. Please check your connection and try again.');
-        }
-    }
+    // Modal and form handling methods
     
     openAddPersonModal() {
-        const existingModal = document.getElementById('addPersonModal');
-        if (existingModal) {
-            existingModal.style.display = 'block';
-            return;
+        console.log('Opening Add Person modal');
+        const modal = document.getElementById('addPersonModal');
+        if (modal) {
+            modal.style.display = 'block';
+            document.getElementById('addPersonPhoto').value = '';
+            document.getElementById('addPersonPhotoPreview').style.display = 'none';
+            document.getElementById('addPersonForm').reset();
         }
-        
-        const modal = document.createElement('div');
-        modal.id = 'addPersonModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <h2>🌱 Add New Family Member</h2>
-                <form id="addPersonForm">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="firstName">First Name *</label>
-                            <input type="text" id="firstName" required>
-                        </div>
-                        <div class="form-group">
-                            <label for="lastName">Last Name</label>
-                            <input type="text" id="lastName">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="birthDate">Birth Date</label>
-                            <input type="date" id="birthDate">
-                        </div>
-                        <div class="form-group">
-                            <label for="gender">Gender</label>
-                            <select id="gender">
-                                <option value="">Select...</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="isLiving">Status</label>
-                        <select id="isLiving">
-                            <option value="true">Living</option>
-                            <option value="false">Deceased</option>
-                        </select>
-                    </div>
-                    
-                    <div class="form-actions" style="display: flex; gap: 15px; justify-content: flex-end; margin-top: 30px;">
-                        <button type="submit" class="btn primary">🌳 Add to Tree</button>
-                        <button type="button" class="btn secondary" onclick="document.getElementById('addPersonModal').style.display='none'">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
-        
-        this.setupFormHandlers();
     }
     
-    openAddRootCoupleModal() {
-        alert('Add Root Couple feature coming soon! For now, add two people individually and then connect them as spouses.');
-        this.openAddPersonModal();
+    // ===== NEW EDIT PERSON FUNCTIONALITY =====
+    openEditPersonModal(personId) {
+        console.log('Opening Edit Person modal for ID:', personId);
+        const modal = document.getElementById('editPersonModal');
+        if (!modal) return;
+        
+        // Load person data
+        fetch(`/familyTimeline/api/person/${personId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.person) {
+                    this.populateEditForm(data.person);
+                    modal.style.display = 'block';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading person data:', error);
+            });
     }
-    
-    selectPerson(person) {
-        this.selectedPerson = person;
-        this.openPersonModal(person);
-    }
-    
-    async openPersonModal(person) {
-        // Remove existing modal if present
-        const existingModal = document.getElementById('personModal');
-        if (existingModal) {
-            existingModal.remove();
+    buildGenerationHierarchy() {
+        const generations = {};
+        
+        // Start with root couple at generation 0
+        if (this.rootCouple.length >= 2) {
+            generations[0] = [...this.rootCouple];
+            
+            // Mark root couple generation
+            this.rootCouple.forEach(person => {
+                person.generation_level = 0;
+            });
         }
         
-        // Create person details modal
-        const modal = document.createElement('div');
-        modal.id = 'personModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content large">
-                <span class="close">&times;</span>
-                <div class="person-header">
-                    <div class="person-info">
-                        <h2 id="personModalName">${person.full_name}</h2>
-                        <div id="personModalDetails" class="person-details">
-                            ${this.formatPersonDetails(person)}
-                        </div>
-                    </div>
-                    <div class="person-actions">
-                        <button id="addStoryBtn" class="btn primary">+ Add Story</button>
-                        <button id="editPersonBtn" class="btn secondary">Edit Person</button>
-                    </div>
-                </div>
-                
-                <div class="modal-tabs">
-                    <button class="tab-btn active" data-tab="stories">Stories</button>
-                    <button class="tab-btn" data-tab="timeline">Life Timeline</button>
-                    <button class="tab-btn" data-tab="family">Family Connections</button>
-                </div>
-                
-                <div class="tab-content">
-                    <div id="tab-stories" class="tab-panel active">
-                        <div id="personStories" class="stories-container">
-                            <div class="loading-stories">Loading stories...</div>
-                        </div>
-                    </div>
-                    
-                    <div id="tab-timeline" class="tab-panel">
-                        <div id="personTimeline" class="timeline-container">
-                            <p style="text-align: center; color: #666; padding: 40px;">
-                                Timeline view coming soon! This will show ${person.first_name}'s life events in chronological order.
-                            </p>
-                        </div>
-                    </div>
-                    
-                    <div id="tab-family" class="tab-panel">
-                        <div id="personFamily" class="family-connections">
-                            ${this.renderFamilyConnections(person)}
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
+        // Build subsequent generations based on parent-child relationships
+        this.people.forEach(person => {
+            if (!this.rootCouple.includes(person)) {
+                const generation = this.calculatePersonGeneration(person);
+                if (!generations[generation]) {
+                    generations[generation] = [];
+                }
+                generations[generation].push(person);
+                person.generation_level = generation;
+            }
+        });
         
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
-        
-        // Setup modal event listeners
-        this.setupPersonModalHandlers(modal, person);
-        
-        // Load person's stories
-        await this.loadPersonStories(person.id);
+        return generations;
     }
-    
-    formatPersonDetails(person) {
-        let details = [];
-        
-        if (person.birth_date || person.is_living) {
-            details.push(this.formatDateRange(person.birth_date, person.death_date, person.is_living));
-        }
-        
-        if (person.birth_place) {
-            details.push(`Born in ${person.birth_place}`);
-        }
-        
-        if (person.bio_summary) {
-            details.push(person.bio_summary);
-        }
-        
-        return details.join(' • ') || 'No additional details available';
-    }
-    
-    renderFamilyConnections(person) {
-        const connections = this.relationships.filter(rel => 
-            rel.person1_id === person.id || rel.person2_id === person.id
+
+    calculatePersonGeneration(person) {
+        // Find if this person is a child of someone
+        const parentRelationship = this.relationships.find(rel => 
+            rel.relationship_type === 'parent' && rel.person2_id === person.id
         );
         
-        if (connections.length === 0) {
-            return '<p style="text-align: center; color: #666; padding: 40px;">No family connections yet. Use Connect Mode to add relationships!</p>';
+        if (parentRelationship) {
+            const parent = this.people.find(p => p.id === parentRelationship.person1_id);
+            if (parent) {
+                return (parent.generation_level || 0) + 1;
+            }
         }
         
-        let html = '<div class="family-connections-list">';
+        // If no parent found, might be a spouse of root or sibling
+        const spouseRelationship = this.relationships.find(rel =>
+            rel.relationship_type === 'spouse' && 
+            (rel.person1_id === person.id || rel.person2_id === person.id)
+        );
         
-        connections.forEach(rel => {
-            const otherPersonId = rel.person1_id === person.id ? rel.person2_id : rel.person1_id;
-            const otherPerson = this.people.find(p => p.id === otherPersonId);
+        if (spouseRelationship) {
+            const spouseId = spouseRelationship.person1_id === person.id ? 
+                            spouseRelationship.person2_id : spouseRelationship.person1_id;
+            const spouse = this.people.find(p => p.id === spouseId);
+            if (spouse && this.rootCouple.includes(spouse)) {
+                return 0; // Also root generation
+            }
+        }
+        
+        return 1; // Default to first child generation
+    }
+
+    positionRootCouple() {
+        if (this.rootCouple.length >= 2) {
+            // Position both in trunk area
+            this.rootCouple[0].x = 680;
+            this.rootCouple[0].y = 850;
+            this.rootCouple[1].x = 720;
+            this.rootCouple[1].y = 850;
+        } else if (this.rootCouple.length === 1) {
+            // Single root person in center of trunk
+            this.rootCouple[0].x = 700;
+            this.rootCouple[0].y = 850;
+        }
+    }
+
+    positionGeneration(people, generation) {
+        if (people.length === 0) return;
+        
+        // Calculate base Y position (higher up for each generation)
+        const baseY = 850 - (generation * 140);
+        
+        // Create family groups (group children by their parents)
+        const familyGroups = this.groupChildrenByParents(people);
+        
+        let totalGroupWidth = 0;
+        const groupSpacing = 200;
+        
+        // Calculate total width needed
+        familyGroups.forEach(group => {
+            totalGroupWidth += Math.max(group.length * 120, 150);
+        });
+        totalGroupWidth += (familyGroups.length - 1) * groupSpacing;
+        
+        // Start positioning from left
+        const startX = 700 - (totalGroupWidth / 2);
+        let currentX = startX;
+        
+        familyGroups.forEach((group, groupIndex) => {
+            const groupWidth = Math.max(group.length * 120, 150);
             
-            if (otherPerson) {
-                const relationshipLabel = this.getRelationshipLabel(rel.relationship_type, rel.person1_id === person.id);
-                html += `
-                    <div class="connection-item">
-                        <div class="connection-type">${relationshipLabel}</div>
-                        <div class="connection-person">${otherPerson.full_name}</div>
-                        <div class="connection-details">${this.formatDateRange(otherPerson.birth_date, otherPerson.death_date, otherPerson.is_living)}</div>
-                    </div>
-                `;
-            }
-        });
-        
-        html += '</div>';
-        return html;
-    }
-    
-    getRelationshipLabel(relType, isFirstPerson) {
-        const labels = {
-            'spouse': 'Spouse',
-            'parent': isFirstPerson ? 'Child' : 'Parent',
-            'child': isFirstPerson ? 'Parent' : 'Child', 
-            'sibling': 'Sibling',
-            'grandparent': isFirstPerson ? 'Grandchild' : 'Grandparent',
-            'grandchild': isFirstPerson ? 'Grandparent' : 'Grandchild',
-            'aunt_uncle': isFirstPerson ? 'Niece/Nephew' : 'Aunt/Uncle',
-            'cousin': 'Cousin'
-        };
-        return labels[relType] || relType;
-    }
-    
-    setupPersonModalHandlers(modal, person) {
-        // Close button
-        modal.querySelector('.close').addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-        
-        // Click outside to close
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-        
-        // Tab switching
-        modal.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const targetTab = btn.getAttribute('data-tab');
-                this.switchTab(targetTab);
+            // Position each person in the group
+            group.forEach((person, personIndex) => {
+                const personSpacing = groupWidth / Math.max(group.length, 1);
+                person.x = currentX + (personIndex * personSpacing) + (personSpacing / 2);
+                person.y = baseY + (Math.random() - 0.5) * 30; // Add natural variation
+                
+                // Store branch endpoint for organic branch drawing
+                person.branchGeneration = generation;
+                person.familyGroup = groupIndex;
             });
-        });
-        
-        // Add Story button
-        modal.querySelector('#addStoryBtn').addEventListener('click', () => {
-            this.openAddStoryModal(person);
-        });
-        
-        // Edit Person button
-        modal.querySelector('#editPersonBtn').addEventListener('click', () => {
-            alert('Edit person feature coming soon!');
+            
+            currentX += groupWidth + groupSpacing;
         });
     }
-    
-    switchTab(targetTab) {
-        // Update tab buttons
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-            btn.classList.remove('active');
-        });
-        document.querySelector(`[data-tab="${targetTab}"]`).classList.add('active');
+
+    groupChildrenByParents(people) {
+        const groups = [];
+        const processed = new Set();
         
-        // Update tab panels
-        document.querySelectorAll('.tab-panel').forEach(panel => {
-            panel.classList.remove('active');
+        people.forEach(person => {
+            if (processed.has(person.id)) return;
+            
+            // Find siblings (people with same parents)
+            const siblings = people.filter(p => {
+                if (processed.has(p.id)) return false;
+                return this.haveSameParents(person, p);
+            });
+            
+            if (siblings.length > 0) {
+                groups.push(siblings);
+                siblings.forEach(sibling => processed.add(sibling.id));
+            } else {
+                groups.push([person]);
+                processed.add(person.id);
+            }
         });
-        document.getElementById(`tab-${targetTab}`).classList.add('active');
+        
+        return groups;
+    }
+
+    haveSameParents(person1, person2) {
+        const person1Parents = this.getParents(person1.id);
+        const person2Parents = this.getParents(person2.id);
+        
+        if (person1Parents.length === 0 || person2Parents.length === 0) {
+            return false;
+        }
+        
+        // Check if they have at least one parent in common
+        return person1Parents.some(p1 => 
+            person2Parents.some(p2 => p1.id === p2.id)
+        );
+    }
+
+    getParents(personId) {
+        const parentRelationships = this.relationships.filter(rel =>
+            rel.relationship_type === 'parent' && rel.person2_id === personId
+        );
+        
+        return parentRelationships.map(rel => 
+            this.people.find(p => p.id === rel.person1_id)
+        ).filter(p => p); // Filter out nulls
+    }
+    
+    populateEditForm(person) {
+        // Populate all the form fields with existing data
+        document.getElementById('editPersonId').value = person.id;
+        document.getElementById('editFirstName').value = person.first_name || '';
+        document.getElementById('editLastName').value = person.last_name || '';
+        document.getElementById('editMaidenName').value = person.maiden_name || '';
+        document.getElementById('editNickname').value = person.nickname || '';
+        document.getElementById('editBirthDate').value = person.birth_date || '';
+        document.getElementById('editDeathDate').value = person.death_date || '';
+        document.getElementById('editBirthPlace').value = person.birth_place || '';
+        document.getElementById('editGender').value = person.gender || '';
+        document.getElementById('editIsLiving').checked = person.is_living;
+        document.getElementById('editBioSummary').value = person.bio_summary || '';
+        
+        // Handle photo preview
+        const photoPreview = document.getElementById('editPersonPhotoPreview');
+        if (person.has_photo) {
+            photoPreview.src = `/familyTimeline/api/person-photo/${person.id}`;
+            photoPreview.style.display = 'block';
+        } else {
+            photoPreview.style.display = 'none';
+        }
+        
+        // Clear file input
+        document.getElementById('editPersonPhoto').value = '';
+        
+        // Show/hide death date field based on living status
+        const deathDateGroup = document.getElementById('editDeathDateGroup');
+        if (deathDateGroup) {
+            deathDateGroup.style.display = person.is_living ? 'none' : 'block';
+        }
+    }
+    
+    // ===== NEW DELETE PERSON FUNCTIONALITY =====
+    openDeleteConfirmationModal(personId) {
+        console.log('Opening delete confirmation for person ID:', personId);
+        
+        // First get the deletion preview data
+        fetch(`/familyTimeline/api/person/${personId}/delete-preview`)
+            .then(response => response.json())
+            .then(data => {
+                this.showDeleteConfirmation(personId, data);
+            })
+            .catch(error => {
+                console.error('Error getting delete preview:', error);
+                alert('Error loading deletion details');
+            });
+    }
+    
+    showDeleteConfirmation(personId, previewData) {
+        const modal = document.getElementById('deleteConfirmModal');
+        if (!modal) return;
+        
+        // Update modal content with detailed information
+        document.getElementById('deletePersonName').textContent = previewData.person_name;
+        document.getElementById('deleteStoryCount').textContent = previewData.story_count;
+        document.getElementById('deleteRelationshipCount').textContent = previewData.relationship_count;
+        
+        // Build lists of what will be deleted
+        const storiesList = document.getElementById('deleteStoriesList');
+        storiesList.innerHTML = '';
+        previewData.stories.forEach(story => {
+            const li = document.createElement('li');
+            li.textContent = `"${story.title}" (${story.theme})`;
+            storiesList.appendChild(li);
+        });
+        
+        const relationshipsList = document.getElementById('deleteRelationshipsList');
+        relationshipsList.innerHTML = '';
+        previewData.relationships.forEach(rel => {
+            const li = document.createElement('li');
+            li.textContent = `${rel.relationship_type} with ${rel.other_person}`;
+            relationshipsList.appendChild(li);
+        });
+        
+        // Show/hide sections based on content
+        const storiesSection = document.getElementById('deleteStoriesSection');
+        const relationshipsSection = document.getElementById('deleteRelationshipsSection');
+        
+        if (storiesSection) {
+            storiesSection.style.display = previewData.story_count > 0 ? 'block' : 'none';
+        }
+        
+        if (relationshipsSection) {
+            relationshipsSection.style.display = previewData.relationship_count > 0 ? 'block' : 'none';
+        }
+        
+        // Store person ID for deletion and reset confirmation
+        document.getElementById('confirmDeleteBtn').setAttribute('data-person-id', personId);
+        document.getElementById('deleteConfirmText').value = '';
+        document.getElementById('confirmDeleteBtn').disabled = true;
+        
+        modal.style.display = 'block';
+    }
+    
+    async handleDeletePerson(personId) {
+        try {
+            const response = await fetch(`/familyTimeline/api/person/${personId}`, {
+                method: 'DELETE'
+            });
+            
+            const data = await response.json();
+            
+            if (data.success) {
+                this.closeModal('deleteConfirmModal');
+                this.closeModal('personModal');
+                this.showSuccessMessage(`Person deleted successfully. Removed ${data.deleted_stories} stories and ${data.deleted_relationships} relationships.`);
+                await this.loadTreeData();
+                this.renderTree();
+            } else {
+                throw new Error(data.message || 'Failed to delete person');
+            }
+        } catch (error) {
+            console.error('Error deleting person:', error);
+            alert('Error deleting person: ' + error.message);
+        }
+    }
+    // ===== END NEW DELETE FUNCTIONALITY =====
+    
+    openAddRootCoupleModal() {
+        const modal = document.getElementById('addRootCoupleModal');
+        if (modal) {
+            modal.style.display = 'block';
+        }
+    }
+    
+    openRelationshipModal(person1Id, person2Id) {
+        const modal = document.getElementById('addRelationshipModal');
+        if (modal) {
+            document.getElementById('relationshipPerson1').value = person1Id;
+            document.getElementById('relationshipPerson2').value = person2Id;
+            
+            const person1 = this.people.find(p => p.id === person1Id);
+            const person2 = this.people.find(p => p.id === person2Id);
+            
+            if (person1 && person2) {
+                document.getElementById('relationshipPreview').textContent = 
+                    `Creating relationship between ${person1.first_name} and ${person2.first_name}`;
+            }
+            
+            modal.style.display = 'block';
+        }
+    }
+    
+    async showPersonDetails(personId) {
+        console.log('Showing person details for ID:', personId);
+        try {
+            const response = await fetch(`/familyTimeline/api/person/${personId}`);
+            const data = await response.json();
+            
+            if (data.person) {
+                this.populatePersonModal(data.person);
+                const modal = document.getElementById('personModal');
+                if (modal) {
+                    modal.style.display = 'block';
+                }
+            }
+        } catch (error) {
+            console.error('Error loading person details:', error);
+        }
+    }
+    
+    populatePersonModal(person) {
+        // Store current person ID for edit/delete operations
+        this.selectedPerson = person.id;
+        
+        // Update modal content
+        document.getElementById('personName').textContent = 
+            `${person.first_name} ${person.last_name || ''}`.trim();
+        
+        document.getElementById('personDetails').innerHTML = `
+            <div class="person-info-grid">
+                ${person.maiden_name ? `<div><strong>Maiden Name:</strong> ${person.maiden_name}</div>` : ''}
+                ${person.nickname ? `<div><strong>Nickname:</strong> ${person.nickname}</div>` : ''}
+                ${person.birth_date ? `<div><strong>Born:</strong> ${new Date(person.birth_date).toLocaleDateString()}</div>` : ''}
+                ${person.death_date ? `<div><strong>Died:</strong> ${new Date(person.death_date).toLocaleDateString()}</div>` : ''}
+                ${person.birth_place ? `<div><strong>Birth Place:</strong> ${person.birth_place}</div>` : ''}
+                ${person.gender ? `<div><strong>Gender:</strong> ${person.gender}</div>` : ''}
+                <div><strong>Status:</strong> ${person.is_living ? 'Living' : 'Deceased'}</div>
+                ${person.bio_summary ? `<div class="bio-summary"><strong>Biography:</strong><br>${person.bio_summary}</div>` : ''}
+            </div>
+        `;
+        
+        // Update photo
+        const photoContainer = document.getElementById('personPhoto');
+        if (person.has_photo) {
+            photoContainer.innerHTML = `<img src="/familyTimeline/api/person-photo/${person.id}" alt="${person.first_name}" />`;
+        } else {
+            photoContainer.innerHTML = `<div class="no-photo">${person.first_name.charAt(0)}</div>`;
+        }
+        
+        // Load and display stories
+        this.loadPersonStories(person.id);
     }
     
     async loadPersonStories(personId) {
         try {
             const response = await fetch(`/familyTimeline/api/person/${personId}/stories`);
             const data = await response.json();
-            this.displayPersonStories(data.stories || []);
-        } catch (error) {
-            console.error('Error loading person stories:', error);
-            this.displayPersonStories([]); // Show empty state on error
-        }
-    }
-    
-    displayPersonStories(stories) {
-        const container = document.getElementById('personStories');
-        if (!container) return;
-        
-        container.innerHTML = '';
-        
-        if (stories.length === 0) {
-            container.innerHTML = `
-                <div style="text-align: center; padding: 40px; color: #666;">
-                    <h3 style="margin-bottom: 15px;">No stories yet</h3>
-                    <p style="margin-bottom: 20px;">Be the first to share a memory about ${this.selectedPerson ? this.selectedPerson.first_name : 'this person'}!</p>
-                    <button id="addFirstStoryBtn" class="btn primary">Add Their First Story</button>
-                </div>
-            `;
             
-            document.getElementById('addFirstStoryBtn')?.addEventListener('click', () => {
-                this.openAddStoryModal(this.selectedPerson);
-            });
-            return;
-        }
-        
-        // Group stories by theme
-        const storiesByTheme = {};
-        stories.forEach(story => {
-            if (!storiesByTheme[story.theme]) {
-                storiesByTheme[story.theme] = [];
+            const storiesContainer = document.getElementById('personStories');
+            if (data.stories && data.stories.length > 0) {
+                storiesContainer.innerHTML = data.stories.map(story => `
+                    <div class="story-item">
+                        <h4>${story.title}</h4>
+                        <div class="story-meta">
+                            <span class="theme">${story.theme}</span>
+                            ${story.year_occurred ? `<span class="year">${story.year_occurred}</span>` : ''}
+                            <span class="author">by ${story.author_name}</span>
+                        </div>
+                        ${story.story_text ? `<p class="story-excerpt">${story.story_text.substring(0, 200)}...</p>` : ''}
+                    </div>
+                `).join('');
+            } else {
+                storiesContainer.innerHTML = '<p class="no-stories">No stories yet. Click "Add Story" to create the first one!</p>';
             }
-            storiesByTheme[story.theme].push(story);
-        });
-        
-        // Render stories grouped by theme
-        Object.keys(storiesByTheme).forEach(theme => {
-            const themeSection = document.createElement('div');
-            themeSection.className = 'theme-section';
-            themeSection.innerHTML = `
-                <h3 class="theme-header">${theme}</h3>
-                <div class="theme-stories"></div>
-            `;
-            
-            const themeStoriesContainer = themeSection.querySelector('.theme-stories');
-            
-            storiesByTheme[theme].forEach(story => {
-                const storyDiv = this.createStoryElement(story);
-                themeStoriesContainer.appendChild(storyDiv);
-            });
-            
-            container.appendChild(themeSection);
-        });
-    }
-    
-    createStoryElement(story) {
-        const storyDiv = document.createElement('div');
-        storyDiv.className = 'story-item';
-        if (story.is_featured) {
-            storyDiv.classList.add('featured');
-        }
-        
-        let questionsHtml = '';
-        if (story.questions_and_answers && story.questions_and_answers.length > 0) {
-            questionsHtml = '<div class="story-questions">';
-            story.questions_and_answers.forEach(qa => {
-                questionsHtml += `
-                    <div class="question-answer">
-                        <div class="question">${qa.question}</div>
-                        <div class="answer">${qa.answer}</div>
-                    </div>
-                `;
-            });
-            questionsHtml += '</div>';
-        }
-        
-        storyDiv.innerHTML = `
-            <div class="story-header">
-                <div class="story-title">${story.title}</div>
-                <div class="story-meta">
-                    ${story.time_period ? `<span class="story-period">${story.time_period}</span>` : ''}
-                    ${story.year_occurred ? `<span class="story-year">${story.year_occurred}</span>` : ''}
-                    ${story.is_featured ? '<span class="story-featured">⭐ Featured</span>' : ''}
-                </div>
-            </div>
-            <div class="story-author">Story by: ${story.author_name}</div>
-            <div class="story-date">Added ${new Date(story.created_at).toLocaleDateString()}</div>
-            ${questionsHtml}
-            <div class="story-text">${story.story_text}</div>
-            ${story.has_photo ? `<img src="/familyTimeline/api/story-photo/${story.id}" class="story-photo" alt="Story photo">` : ''}
-        `;
-        
-        return storyDiv;
-    }
-    
-    async openAddStoryModal(person) {
-        // Remove existing modal if present
-        const existingModal = document.getElementById('addStoryModal');
-        if (existingModal) {
-            existingModal.remove();
-        }
-        
-        // Load themes first
-        await this.loadThemes();
-        
-        // Create add story modal
-        const modal = document.createElement('div');
-        modal.id = 'addStoryModal';
-        modal.className = 'modal';
-        modal.innerHTML = `
-            <div class="modal-content large">
-                <span class="close">&times;</span>
-                <h2>Add Story for ${person.first_name}</h2>
-                <form id="addStoryForm">
-                    <input type="hidden" id="storyPersonId" value="${person.id}">
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="storyTitle">Story Title *</label>
-                            <input type="text" id="storyTitle" required placeholder="Give your story a memorable title...">
-                        </div>
-                        <div class="form-group">
-                            <label for="storyAuthor">Author (Your Name) *</label>
-                            <input type="text" id="storyAuthor" required placeholder="Who is telling this story?">
-                        </div>
-                    </div>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label for="storyTheme">Theme *</label>
-                            <select id="storyTheme" required>
-                                <option value="">Select a theme...</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="timePeriod">Time Period</label>
-                            <input type="text" id="timePeriod" placeholder="e.g., Childhood, 1950s, College Years">
-                        </div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="yearOccurred">Year (approximate)</label>
-                        <input type="number" id="yearOccurred" min="1900" max="2030" placeholder="When did this happen?">
-                    </div>
-                    
-                    <div class="form-group" id="storyQuestionsGroup" style="display: none;">
-                        <label>Guided Questions (optional - select ones you'd like to answer)</label>
-                        <div id="storyQuestions" class="theme-questions"></div>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="storyText">Your Story *</label>
-                        <textarea id="storyText" rows="8" required placeholder="Tell the story here..."></textarea>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label for="storyPhoto">Add Photo</label>
-                        <input type="file" id="storyPhoto" accept="image/*">
-                    </div>
-                    
-                    <div class="form-group">
-                        <label>
-                            <input type="checkbox" id="isFeatured"> 
-                            Featured Story (highlight this story)
-                        </label>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <button type="submit" class="btn primary">Save Story</button>
-                        <button type="button" class="btn secondary" onclick="document.getElementById('addStoryModal').style.display='none'">Cancel</button>
-                    </div>
-                </form>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        modal.style.display = 'block';
-        
-        // Populate themes
-        this.populateStoryThemes();
-        
-        // Setup story modal handlers
-        this.setupStoryModalHandlers(modal, person);
-    }
-    
-    async loadThemes() {
-        try {
-            const response = await fetch('/familyTimeline/api/themes');
-            const data = await response.json();
-            this.themes = data.themes || [];
         } catch (error) {
-            console.error('Error loading themes:', error);
-            this.themes = [];
+            console.error('Error loading stories:', error);
         }
     }
     
-    populateStoryThemes() {
-        const select = document.getElementById('storyTheme');
-        if (!select) return;
-        
-        // Clear existing options except first
-        while (select.children.length > 1) {
-            select.removeChild(select.lastChild);
-        }
-        
-        // Add theme options
-        this.themes.forEach(theme => {
-            const option = document.createElement('option');
-            option.value = theme.key;
-            option.textContent = theme.name;
-            select.appendChild(option);
-        });
-    }
-    
-    setupStoryModalHandlers(modal, person) {
-        // Close button
-        modal.querySelector('.close').addEventListener('click', () => {
+    closeModal(modalId) {
+        const modal = document.getElementById(modalId);
+        if (modal) {
             modal.style.display = 'none';
-        });
-        
-        // Click outside to close
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.style.display = 'none';
-            }
-        });
-        
-        // Theme change handler
-        document.getElementById('storyTheme')?.addEventListener('change', async (e) => {
-            await this.handleThemeChange(e.target.value);
-        });
-        
-        // Form submission
-        document.getElementById('addStoryForm')?.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            await this.handleStorySubmission(person);
-        });
-    }
-    
-    async handleThemeChange(selectedTheme) {
-        const questionsGroup = document.getElementById('storyQuestionsGroup');
-        const questionsContainer = document.getElementById('storyQuestions');
-        
-        if (!questionsGroup || !questionsContainer) return;
-        
-        if (selectedTheme) {
-            try {
-                const response = await fetch(`/familyTimeline/api/themes/${selectedTheme}/questions`);
-                const data = await response.json();
-                
-                questionsContainer.innerHTML = '';
-                
-                data.questions.forEach(question => {
-                    const questionDiv = document.createElement('div');
-                    questionDiv.className = 'question-option';
-                    
-                    questionDiv.innerHTML = `
-                        <label>
-                            <input type="checkbox" name="themeQuestions" value="${question.id}" data-question="${question.text}">
-                            <span class="question-text">${question.text}</span>
-                        </label>
-                        <div class="answer-input" style="display: none;">
-                            <textarea placeholder="Your answer..." rows="3"></textarea>
-                        </div>
-                    `;
-                    
-                    questionsContainer.appendChild(questionDiv);
-                    
-                    // Add checkbox handler
-                    const checkbox = questionDiv.querySelector('input[type="checkbox"]');
-                    const answerDiv = questionDiv.querySelector('.answer-input');
-                    
-                    checkbox.addEventListener('change', function() {
-                        if (this.checked) {
-                            answerDiv.style.display = 'block';
-                            answerDiv.querySelector('textarea').focus();
-                        } else {
-                            answerDiv.style.display = 'none';
-                            answerDiv.querySelector('textarea').value = '';
-                        }
-                    });
-                });
-                
-                questionsGroup.style.display = 'block';
-            } catch (error) {
-                console.error('Error loading theme questions:', error);
-            }
-        } else {
-            questionsGroup.style.display = 'none';
         }
     }
     
-    async handleStorySubmission(person) {
-        // Collect form data
-        const formData = {
-            person_id: person.id,
-            title: document.getElementById('storyTitle').value,
-            author_name: document.getElementById('storyAuthor').value,
-            theme: this.getThemeName(document.getElementById('storyTheme').value),
-            time_period: document.getElementById('timePeriod').value || null,
-            year_occurred: parseInt(document.getElementById('yearOccurred').value) || null,
-            story_text: document.getElementById('storyText').value,
-            is_featured: document.getElementById('isFeatured').checked
-        };
+    showSuccessMessage(message) {
+        // Create a temporary success message
+        const successDiv = document.createElement('div');
+        successDiv.className = 'success-message';
+        successDiv.textContent = message;
+        successDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            z-index: 10000;
+            animation: slideIn 0.3s ease-out;
+        `;
         
-        // Collect questions and answers
-        const questionsAndAnswers = [];
-        const selectedQuestions = document.querySelectorAll('input[name="themeQuestions"]:checked');
+        document.body.appendChild(successDiv);
         
-        selectedQuestions.forEach(checkbox => {
-            const questionText = checkbox.getAttribute('data-question');
-            const answerTextarea = checkbox.closest('.question-option').querySelector('textarea');
-            const answer = answerTextarea.value.trim();
+        // Remove after 3 seconds
+        setTimeout(() => {
+            successDiv.remove();
+        }, 3000);
+    }
+    
+    // Form submission handlers
+    
+    async handleAddPersonSubmit(e) {
+        try {
+            const formData = new FormData(e.target);
+            const personData = {
+                family_code: this.familyCode,
+                first_name: formData.get('first_name'),
+                last_name: formData.get('last_name'),
+                maiden_name: formData.get('maiden_name'),
+                nickname: formData.get('nickname'),
+                birth_date: formData.get('birth_date'),
+                death_date: formData.get('death_date'),
+                birth_place: formData.get('birth_place'),
+                gender: formData.get('gender'),
+                is_living: formData.get('is_living') === 'on',
+                bio_summary: formData.get('bio_summary')
+            };
             
-            if (answer) {
-                questionsAndAnswers.push({
-                    question: questionText,
-                    answer: answer
-                });
+            // Handle photo upload
+            const photoFile = formData.get('photo');
+            if (photoFile && photoFile.size > 0) {
+                const photoData = await this.fileToBase64(photoFile);
+                personData.photo_data = photoData;
+                personData.photo_filename = photoFile.name;
             }
-        });
-        
-        formData.questions_and_answers = questionsAndAnswers;
-        
-        // Handle photo if present
-        const photoFile = document.getElementById('storyPhoto').files[0];
-        if (photoFile) {
-            formData.photo_data = await this.fileToBase64(photoFile);
-            formData.photo_filename = photoFile.name;
+            
+            const response = await fetch('/familyTimeline/api/person', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(personData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.closeModal('addPersonModal');
+                this.showSuccessMessage(`${personData.first_name} added successfully!`);
+                await this.loadTreeData();
+                this.renderTree();
+                e.target.reset();
+            } else {
+                throw new Error(result.message || 'Failed to add person');
+            }
+        } catch (error) {
+            console.error('Error adding person:', error);
+            alert('Error adding person: ' + error.message);
         }
-        
-        // Submit story
-        await this.saveStory(formData);
     }
     
-    getThemeName(themeKey) {
-        const theme = this.themes.find(t => t.key === themeKey);
-        return theme ? theme.name : themeKey;
+    // ===== NEW EDIT PERSON SUBMIT HANDLER =====
+    async handleEditPersonSubmit(e) {
+        try {
+            const formData = new FormData(e.target);
+            const personId = formData.get('person_id');
+            
+            const personData = {
+                first_name: formData.get('first_name'),
+                last_name: formData.get('last_name'),
+                maiden_name: formData.get('maiden_name'),
+                nickname: formData.get('nickname'),
+                birth_date: formData.get('birth_date'),
+                death_date: formData.get('death_date'),
+                birth_place: formData.get('birth_place'),
+                gender: formData.get('gender'),
+                is_living: formData.get('is_living') === 'on',
+                bio_summary: formData.get('bio_summary')
+            };
+            
+            // Handle photo upload if new photo is selected
+            const photoFile = formData.get('photo');
+            if (photoFile && photoFile.size > 0) {
+                const photoData = await this.fileToBase64(photoFile);
+                personData.photo_data = photoData;
+                personData.photo_filename = photoFile.name;
+            }
+            
+            const response = await fetch(`/familyTimeline/api/person/${personId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(personData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.closeModal('editPersonModal');
+                this.closeModal('personModal'); // Close person details modal too
+                this.showSuccessMessage(`${personData.first_name} updated successfully!`);
+                await this.loadTreeData();
+                this.renderTree();
+            } else {
+                throw new Error(result.message || 'Failed to update person');
+            }
+        } catch (error) {
+            console.error('Error updating person:', error);
+            alert('Error updating person: ' + error.message);
+        }
+    }
+    // ===== END NEW EDIT HANDLER =====
+    
+    async handleAddRelationshipSubmit(e) {
+        try {
+            const formData = new FormData(e.target);
+            const relationshipData = {
+                family_code: this.familyCode,
+                person1_id: parseInt(formData.get('person1_id')),
+                person2_id: parseInt(formData.get('person2_id')),
+                relationship_type: formData.get('relationship_type'),
+                marriage_date: formData.get('marriage_date'),
+                divorce_date: formData.get('divorce_date')
+            };
+            
+            const response = await fetch('/familyTimeline/api/relationship', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(relationshipData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.closeModal('addRelationshipModal');
+                this.showSuccessMessage('Relationship created successfully!');
+                await this.loadTreeData();
+                this.renderTree();
+                e.target.reset();
+            } else {
+                throw new Error(result.message || 'Failed to create relationship');
+            }
+        } catch (error) {
+            console.error('Error creating relationship:', error);
+            alert('Error creating relationship: ' + error.message);
+        }
     }
     
-    fileToBase64(file) {
+    async handleStorySubmit(e) {
+        try {
+            const formData = new FormData(e.target);
+            
+            // Collect theme questions answers
+            const questionsAndAnswers = [];
+            const selectedQuestions = e.target.querySelectorAll('input[name="theme_questions"]:checked');
+            
+            selectedQuestions.forEach(checkbox => {
+                const questionText = checkbox.getAttribute('data-question');
+                const answerTextarea = checkbox.closest('.question-option').querySelector('textarea');
+                const answer = answerTextarea.value.trim();
+                
+                if (answer) {
+                    questionsAndAnswers.push({
+                        question: questionText,
+                        answer: answer
+                    });
+                }
+            });
+            
+            const storyData = {
+                family_code: this.familyCode,
+                person_id: parseInt(formData.get('person_id')),
+                title: formData.get('title'),
+                author_name: formData.get('author_name'),
+                theme: formData.get('theme'),
+                time_period: formData.get('time_period'),
+                year_occurred: formData.get('year_occurred') ? parseInt(formData.get('year_occurred')) : null,
+                story_text: formData.get('story_text'),
+                questions_and_answers: questionsAndAnswers,
+                is_featured: formData.get('is_featured') === 'on'
+            };
+            
+            // Handle photo upload
+            const photoFile = formData.get('photo');
+            if (photoFile && photoFile.size > 0) {
+                const photoData = await this.fileToBase64(photoFile);
+                storyData.photo_data = photoData;
+                storyData.photo_filename = photoFile.name;
+            }
+            
+            const response = await fetch('/familyTimeline/api/story', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(storyData)
+            });
+            
+            const result = await response.json();
+            
+            if (result.success) {
+                this.closeModal('addStoryModal');
+                this.showSuccessMessage('Story added successfully!');
+                // Refresh person's stories if person modal is open
+                if (this.selectedPerson) {
+                    this.loadPersonStories(this.selectedPerson);
+                }
+                e.target.reset();
+            } else {
+                throw new Error(result.message || 'Failed to add story');
+            }
+        } catch (error) {
+            console.error('Error adding story:', error);
+            alert('Error adding story: ' + error.message);
+        }
+    }
+    
+    // Utility methods
+    
+    async fileToBase64(file) {
         return new Promise((resolve, reject) => {
             const reader = new FileReader();
             reader.readAsDataURL(file);
@@ -1416,162 +1356,153 @@ class OrganicFamilyTree {
             reader.onerror = error => reject(error);
         });
     }
+}
+
+// Initialize the family tree when the page loads
+document.addEventListener('DOMContentLoaded', function() {
+    const familyCode = new URLSearchParams(window.location.search).get('family') || window.familyCode;
     
-    async saveStory(storyData) {
-        try {
-            const response = await fetch('/familyTimeline/api/story', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    family_code: this.familyCode,
-                    ...storyData
-                })
-            });
-            
-            if (response.ok) {
-                const result = await response.json();
-                console.log('Story saved:', result);
-                
-                // Close modal and refresh stories
-                document.getElementById('addStoryModal').style.display = 'none';
-                await this.loadPersonStories(storyData.person_id);
-                
-                this.showSuccessMessage('Story saved successfully!');
-            } else {
-                throw new Error('Failed to save story');
-            }
-        } catch (error) {
-            console.error('Error saving story:', error);
-            alert('Error saving story. Please try again.');
-        }
+    if (familyCode) {
+        window.familyTree = new OrganicFamilyTree(familyCode);
+        
+        // Setup modal event handlers
+        setupModalHandlers();
     }
+});
+
+function setupModalHandlers() {
+    // Close buttons
+    document.querySelectorAll('.modal .close').forEach(closeBtn => {
+        closeBtn.addEventListener('click', function() {
+            this.closest('.modal').style.display = 'none';
+        });
+    });
     
-    createPhotoPattern(personId) {
-        const defs = document.querySelector('defs');
-        const pattern = document.createElementNS('http://www.w3.org/2000/svg', 'pattern');
-        pattern.setAttribute('id', `photo-${personId}`);
-        pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-        pattern.setAttribute('width', '50');
-        pattern.setAttribute('height', '50');
-        
-        const image = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-        image.setAttribute('href', `/familyTimeline/api/person-photo/${personId}`);
-        image.setAttribute('width', '50');
-        image.setAttribute('height', '50');
-        image.setAttribute('preserveAspectRatio', 'xMidYMid slice');
-        
-        pattern.appendChild(image);
-        defs.appendChild(pattern);
-    }
-    
-    renderConnections() {
-        const connectionsContainer = document.getElementById('branchConnections');
-        if (!connectionsContainer) return;
-        
-        connectionsContainer.innerHTML = '';
-        
-        const spouseRelationships = this.relationships.filter(rel => rel.relationship_type === 'spouse');
-        
-        spouseRelationships.forEach(rel => {
-            const person1 = this.people.find(p => p.id === rel.person1_id);
-            const person2 = this.people.find(p => p.id === rel.person2_id);
-            
-            if (person1 && person2 && person1.x !== undefined && person2.x !== undefined) {
-                this.createMarriageConnection(person1, person2, connectionsContainer);
+    // Click outside modal to close
+    document.querySelectorAll('.modal').forEach(modal => {
+        modal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                this.style.display = 'none';
             }
         });
-    }
+    });
     
-    createMarriageConnection(person1, person2, container) {
-        const midX = (person1.x + person2.x) / 2;
-        const midY = (person1.y + person2.y) / 2 - 20;
-        
-        const marriagePath = `M ${person1.x} ${person1.y} Q ${midX} ${midY} ${person2.x} ${person2.y}`;
-        
-        const marriageLine = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        marriageLine.setAttribute('d', marriagePath);
-        marriageLine.setAttribute('stroke', '#FFD700');
-        marriageLine.setAttribute('stroke-width', '4');
-        marriageLine.setAttribute('fill', 'none');
-        marriageLine.setAttribute('stroke-dasharray', '8,4');
-        marriageLine.setAttribute('filter', 'url(#organicShadow)');
-        marriageLine.setAttribute('class', 'marriage-connection');
-        
-        const heart = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        heart.setAttribute('x', midX);
-        heart.setAttribute('y', midY + 5);
-        heart.setAttribute('text-anchor', 'middle');
-        heart.setAttribute('font-size', '16');
-        heart.setAttribute('fill', '#FFD700');
-        heart.textContent = '💕';
-        
-        container.appendChild(marriageLine);
-        container.appendChild(heart);
-    }
-    
-    getPersonColor(person) {
-        const colors = {
-            male: '#4A90E2',
-            female: '#E24A90', 
-            other: '#9B59B6',
-            unknown: '#228B22'
-        };
-        return colors[person.gender] || colors.unknown;
-    }
-    
-    getInitials(firstName, lastName) {
-        const first = firstName ? firstName.charAt(0).toUpperCase() : '';
-        const last = lastName ? lastName.charAt(0).toUpperCase() : '';
-        return first + last;
-    }
-    
-    formatDateRange(birthDate, deathDate, isLiving) {
-        const formatDate = (dateStr) => {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            return date.getFullYear().toString();
-        };
-        
-        const birth = formatDate(birthDate);
-        const death = formatDate(deathDate);
-        
-        if (birth && death) {
-            return `${birth} - ${death}`;
-        } else if (birth && isLiving) {
-            return `${birth} - present`;
-        } else if (birth) {
-            return birth;
+    // ===== NEW EDIT/DELETE BUTTON HANDLERS =====
+    // Edit person button handler
+    document.addEventListener('click', function(e) {
+        if (e.target.id === 'editPersonBtn') {
+            if (window.familyTree && window.familyTree.selectedPerson) {
+                window.familyTree.openEditPersonModal(window.familyTree.selectedPerson);
+            }
         }
-        return '';
-    }
-    
-    updateTreeTransform() {
-        const svg = document.getElementById('organicTreeSVG');
-        if (svg) {
-            svg.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.scale})`;
+        
+        // Delete person button handler
+        if (e.target.id === 'deletePersonBtn') {
+            if (window.familyTree && window.familyTree.selectedPerson) {
+                window.familyTree.openDeleteConfirmationModal(window.familyTree.selectedPerson);
+            }
         }
-    }
-    
-    updateZoomDisplay() {
-        const zoomDisplay = document.getElementById('zoomLevel');
-        if (zoomDisplay) {
-            zoomDisplay.textContent = Math.round(this.scale * 100) + '%';
+        
+        // Confirm delete button handler
+        if (e.target.id === 'confirmDeleteBtn') {
+            const personId = e.target.getAttribute('data-person-id');
+            if (personId && window.familyTree) {
+                window.familyTree.handleDeletePerson(parseInt(personId));
+            }
         }
-    }
+    });
+    // ===== END NEW BUTTON HANDLERS =====
     
-    centerTree() {
-        this.panX = 0;
-        this.panY = 0;
-        this.scale = 1;
-        this.updateTreeTransform();
-        this.updateZoomDisplay();
+    // Living status change handler for death date field
+    document.addEventListener('change', function(e) {
+        if (e.target.id === 'editIsLiving' || e.target.id === 'addIsLiving') {
+            const isLiving = e.target.checked;
+            const deathDateField = e.target.closest('form').querySelector('input[name="death_date"]');
+            
+            if (deathDateField) {
+                deathDateField.style.display = isLiving ? 'none' : 'block';
+                if (isLiving) {
+                    deathDateField.value = '';
+                }
+            }
+        }
+    });
+    
+    // Theme selection handler for story forms
+    document.addEventListener('change', function(e) {
+        if (e.target.name === 'theme' && window.familyTree) {
+            loadThemeQuestions(e.target.value, e.target.closest('form'));
+        }
+    });
+}
+
+async function loadThemeQuestions(themeKey, form) {
+    if (!themeKey) return;
+    
+    try {
+        const response = await fetch(`/familyTimeline/api/themes/${themeKey}/questions`);
+        const data = await response.json();
+        
+        const questionsContainer = form.querySelector('.theme-questions');
+        if (!questionsContainer) return;
+        
+        questionsContainer.innerHTML = '';
+        
+        data.questions.forEach(question => {
+            const questionDiv = document.createElement('div');
+            questionDiv.className = 'question-option';
+            
+            questionDiv.innerHTML = `
+                <label>
+                    <input type="checkbox" name="theme_questions" value="${question.id}" data-question="${question.text}">
+                    <span class="question-text">${question.text}</span>
+                </label>
+                <div class="answer-input" style="display: none;">
+                    <textarea placeholder="Your answer..." rows="3"></textarea>
+                </div>
+            `;
+            
+            // Add checkbox event listener
+            const checkbox = questionDiv.querySelector('input[type="checkbox"]');
+            const answerDiv = questionDiv.querySelector('.answer-input');
+            
+            checkbox.addEventListener('change', function() {
+                if (this.checked) {
+                    answerDiv.style.display = 'block';
+                    answerDiv.querySelector('textarea').focus();
+                } else {
+                    answerDiv.style.display = 'none';
+                    answerDiv.querySelector('textarea').value = '';
+                }
+            });
+            
+            questionsContainer.appendChild(questionDiv);
+        });
+        
+        questionsContainer.parentElement.style.display = 'block';
+    } catch (error) {
+        console.error('Error loading theme questions:', error);
     }
 }
 
-// Add notification animations to CSS
-const notificationStyle = document.createElement('style');
-notificationStyle.textContent = `
-    @keyframes slideInRight {
+// ===== NEW DELETE CONFIRMATION VALIDATION =====
+// Setup delete confirmation text validation
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteInput = document.getElementById('deleteConfirmText');
+    const deleteBtn = document.getElementById('confirmDeleteBtn');
+    
+    if (deleteInput && deleteBtn) {
+        deleteInput.addEventListener('input', function() {
+            deleteBtn.disabled = this.value.toUpperCase() !== 'DELETE';
+        });
+    }
+});
+// ===== END NEW DELETE VALIDATION =====
+
+// Add CSS animations
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes slideIn {
         from {
             transform: translateX(100%);
             opacity: 0;
@@ -1582,43 +1513,187 @@ notificationStyle.textContent = `
         }
     }
     
-    @keyframes slideOutRight {
-        from {
-            transform: translateX(0);
-            opacity: 1;
-        }
-        to {
-            transform: translateX(100%);
-            opacity: 0;
-        }
+    .success-message {
+        animation: slideIn 0.3s ease-out;
     }
     
+    .person-node.connection-start {
+        filter: drop-shadow(0 0 10px #FFD700) brightness(1.2);
+        animation: connectionPulse 1s infinite;
+    }
+    
+    @keyframes connectionPulse {
+        0%, 100% { opacity: 1; }
+        50% { opacity: 0.7; }
+    }
+    
+    .person-info-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 15px;
+    }
+    
+    .bio-summary {
+        grid-column: 1 / -1;
+        margin-top: 10px;
+        padding: 10px;
+        background: #f8f9fa;
+        border-radius: 5px;
+    }
+    
+    .no-photo {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        background: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 40px;
+        font-weight: bold;
+        color: #6c757d;
+    }
+    
+    .story-item {
+        background: #f8f9fa;
+        padding: 15px;
+        margin: 10px 0;
+        border-radius: 8px;
+        border-left: 4px solid #28a745;
+    }
+    
+    .story-meta {
+        display: flex;
+        gap: 10px;
+        margin: 5px 0;
+        font-size: 12px;
+    }
+    
+    .story-meta .theme {
+        background: #e3f2fd;
+        color: #1976d2;
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+    
+    .story-meta .year {
+        background: #fff3e0;
+        color: #f57c00;
+        padding: 2px 8px;
+        border-radius: 12px;
+    }
+    
+    .story-meta .author {
+        color: #666;
+        font-style: italic;
+    }
+    
+    .story-excerpt {
+        margin-top: 10px;
+        color: #666;
+        line-height: 1.4;
+    }
+    
+    .no-stories {
+        text-align: center;
+        color: #666;
+        font-style: italic;
+        padding: 40px 20px;
+    }
+    
+    .question-option {
+        margin: 10px 0;
+        padding: 15px;
+        background: white;
+        border: 2px solid #ddd;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+    
+    .question-option:hover {
+        border-color: #28a745;
+        background: #f8fff8;
+    }
+    
+    .question-option label {
+        display: flex;
+        align-items: flex-start;
+        cursor: pointer;
+        margin-bottom: 0;
+        font-weight: normal;
+    }
+    
+    .question-option input[type="checkbox"] {
+        margin-right: 12px;
+        width: auto;
+        transform: scale(1.2);
+        margin-top: 2px;
+    }
+    
+    .question-text {
+        flex: 1;
+        color: #333;
+        line-height: 1.4;
+    }
+    
+    .answer-input {
+        margin-top: 10px;
+        padding-left: 30px;
+    }
+    
+    .answer-input textarea {
+        width: 100%;
+        border: 2px solid #e0e0e0;
+        border-radius: 5px;
+        padding: 8px;
+        font-family: inherit;
+    }
+    
+    .answer-input textarea:focus {
+        border-color: #28a745;
+        outline: none;
+    }
+`;
+document.head.appendChild(style);
+
+// ===== ADD THESE CSS ANIMATIONS =====
+const organicTreeStyle = document.createElement('style');
+organicTreeStyle.textContent = `
     @keyframes growBranch {
         to {
             stroke-dashoffset: 0;
         }
     }
     
-    .person-node.connectable {
-        animation: pulse 1s infinite;
+    @keyframes birdFly {
+        0%, 100% { transform: translateX(0) translateY(0); }
+        25% { transform: translateX(10px) translateY(-5px); }
+        50% { transform: translateX(20px) translateY(0); }
+        75% { transform: translateX(10px) translateY(5px); }
     }
     
-    .person-node.connection-start {
-        filter: drop-shadow(0 0 10px #FFD700) brightness(1.2);
+    @keyframes leafFall {
+        0% { 
+            transform: translateY(0) rotate(0deg);
+            opacity: 0.4;
+        }
+        100% { 
+            transform: translateY(800px) rotate(360deg);
+            opacity: 0;
+        }
     }
     
-    @keyframes pulse {
-        0%, 100% { opacity: 1; }
-        50% { opacity: 0.7; }
+    .main-branch {
+        stroke: #8B4513;
+    }
+    
+    .secondary-branch {
+        stroke: #A0522D;
+    }
+    
+    .child-branch {
+        stroke: #CD853F;
     }
 `;
-document.head.appendChild(notificationStyle);
-
-// Initialize the organic family tree
-document.addEventListener('DOMContentLoaded', function() {
-    const familyCode = new URLSearchParams(window.location.search).get('family') || window.familyCode;
-    
-    if (familyCode) {
-        window.familyTree = new OrganicFamilyTree(familyCode);
-    }
-});
+document.head.appendChild(organicTreeStyle);

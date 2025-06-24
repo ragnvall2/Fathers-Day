@@ -42,37 +42,37 @@
             <span class="close">&times;</span>
             <div class="person-header">
                 <div class="person-info">
-                    <h2 id="personModalName">Person Name</h2>
-                    <div id="personModalDetails" class="person-details"></div>
+                    <h2 id="personName">Person Name</h2>
+                    <div id="personDetails" class="person-details"></div>
                 </div>
                 <div class="person-actions">
-                    <button id="addStoryBtn" class="btn">+ Add Story</button>
-                    <button id="editPersonBtn" class="btn secondary">Edit Person</button>
+                    <button id="addStoryBtn" class="btn primary">+ Add Story</button>
+                    <button id="editPersonBtn" class="btn secondary">✏️ Edit Person</button>
+                    <button id="deletePersonBtn" class="btn" style="background: #dc3545;">🗑️ Delete Person</button>
                 </div>
             </div>
             
             <div class="modal-tabs">
-                <button class="tab-btn active" data-tab="stories">Stories</button>
-                <button class="tab-btn" data-tab="timeline">Life Timeline</button>
-                <button class="tab-btn" data-tab="family">Family Connections</button>
+                <button class="tab-btn active" data-tab="info">Overview</button>
+                <button class="tab-btn" data-tab="stories">Stories</button>
+                <button class="tab-btn" data-tab="family">Family</button>
             </div>
             
             <div class="tab-content">
-                <div id="tab-stories" class="tab-panel active">
-                    <div id="personStories" class="stories-container">
-                        <!-- Stories will be loaded here -->
-                    </div>
+                <div id="tab-info" class="tab-panel active">
+                    <div id="personPhoto" style="text-align: center; margin: 20px 0;"></div>
+                    <div id="personFullDetails"></div>
                 </div>
                 
-                <div id="tab-timeline" class="tab-panel">
-                    <div id="personTimeline" class="timeline-container">
-                        <!-- Person's life timeline -->
+                <div id="tab-stories" class="tab-panel">
+                    <div id="personStories" class="stories-container">
+                        <div class="loading-stories">Loading stories...</div>
                     </div>
                 </div>
                 
                 <div id="tab-family" class="tab-panel">
                     <div id="personFamily" class="family-connections">
-                        <!-- Family relationships -->
+                        <p style="text-align: center; color: #666; padding: 40px;">Family connections will be shown here</p>
                     </div>
                 </div>
             </div>
@@ -83,45 +83,45 @@
     <div id="addPersonModal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Add New Family Member</h2>
+            <h2>🌱 Add New Family Member</h2>
             <form id="addPersonForm">
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="firstName">First Name *</label>
-                        <input type="text" id="firstName" name="firstName" required>
+                        <label for="addFirstName">First Name *</label>
+                        <input type="text" id="addFirstName" name="first_name" required>
                     </div>
                     <div class="form-group">
-                        <label for="lastName">Last Name</label>
-                        <input type="text" id="lastName" name="lastName">
-                    </div>
-                </div>
-                
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="maidenName">Maiden Name</label>
-                        <input type="text" id="maidenName" name="maidenName">
-                    </div>
-                    <div class="form-group">
-                        <label for="nickname">Nickname</label>
-                        <input type="text" id="nickname" name="nickname">
+                        <label for="addLastName">Last Name</label>
+                        <input type="text" id="addLastName" name="last_name">
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="birthDate">Birth Date</label>
-                        <input type="date" id="birthDate" name="birthDate">
+                        <label for="addMaidenName">Maiden Name</label>
+                        <input type="text" id="addMaidenName" name="maiden_name">
                     </div>
                     <div class="form-group">
-                        <label for="birthPlace">Birth Place</label>
-                        <input type="text" id="birthPlace" name="birthPlace">
+                        <label for="addNickname">Nickname</label>
+                        <input type="text" id="addNickname" name="nickname">
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="gender">Gender</label>
-                        <select id="gender" name="gender">
+                        <label for="addBirthDate">Birth Date</label>
+                        <input type="date" id="addBirthDate" name="birth_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="addBirthPlace">Birth Place</label>
+                        <input type="text" id="addBirthPlace" name="birth_place">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="addGender">Gender</label>
+                        <select id="addGender" name="gender">
                             <option value="">Select...</option>
                             <option value="male">Male</option>
                             <option value="female">Female</option>
@@ -129,54 +129,212 @@
                         </select>
                     </div>
                     <div class="form-group">
-                        <label for="isLiving">Status</label>
-                        <select id="isLiving" name="isLiving">
-                            <option value="true">Living</option>
-                            <option value="false">Deceased</option>
-                        </select>
+                        <label>
+                            <input type="checkbox" id="addIsLiving" name="is_living" checked> Living
+                        </label>
                     </div>
                 </div>
                 
-                <div class="form-group" id="deathDateGroup" style="display: none;">
-                    <label for="deathDate">Death Date</label>
-                    <input type="date" id="deathDate" name="deathDate">
+                <div class="form-group" id="addDeathDateGroup" style="display: none;">
+                    <label for="addDeathDate">Death Date</label>
+                    <input type="date" id="addDeathDate" name="death_date">
                 </div>
                 
                 <div class="form-group">
-                    <label for="relationshipPerson">Relationship to existing person</label>
-                    <select id="relationshipPerson" name="relationshipPerson">
-                        <option value="">Select person...</option>
-                    </select>
-                </div>
-                
-                <div class="form-group" id="relationshipTypeGroup" style="display: none;">
-                    <label for="relationshipType">Relationship Type</label>
-                    <select id="relationshipType" name="relationshipType">
-                        <option value="">Select...</option>
-                        <option value="parent">Parent of selected person</option>
-                        <option value="child">Child of selected person</option>
-                        <option value="spouse">Spouse of selected person</option>
-                        <option value="sibling">Sibling of selected person</option>
-                        <option value="adopted_parent">Adopted parent of selected person</option>
-                        <option value="adopted_child">Adopted child of selected person</option>
-                        <option value="step_parent">Step-parent of selected person</option>
-                        <option value="step_child">Step-child of selected person</option>
-                    </select>
+                    <label for="addPersonPhoto">Profile Photo</label>
+                    <input type="file" id="addPersonPhoto" name="photo" accept="image/*">
+                    <img id="addPersonPhotoPreview" style="display: none; max-width: 100px; margin-top: 10px; border-radius: 50%;">
                 </div>
                 
                 <div class="form-group">
-                    <label for="profilePhoto">Profile Photo</label>
-                    <input type="file" id="profilePhoto" name="profilePhoto" accept="image/*">
-                </div>
-                
-                <div class="form-group">
-                    <label for="bioSummary">Short Biography</label>
-                    <textarea id="bioSummary" name="bioSummary" rows="3" placeholder="Brief description of this person..."></textarea>
+                    <label for="addBioSummary">Short Biography</label>
+                    <textarea id="addBioSummary" name="bio_summary" rows="3" placeholder="Brief description of this person..."></textarea>
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit" class="btn primary">Add to Tree</button>
+                    <button type="submit" class="btn primary">🌳 Add to Tree</button>
                     <button type="button" class="btn secondary" onclick="document.getElementById('addPersonModal').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ===== NEW EDIT PERSON MODAL ===== -->
+    <!-- ADD THIS ENTIRE MODAL TO YOUR EXISTING tree.html -->
+    <div id="editPersonModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>✏️ Edit Family Member</h2>
+            <form id="editPersonForm">
+                <input type="hidden" id="editPersonId" name="person_id">
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editFirstName">First Name *</label>
+                        <input type="text" id="editFirstName" name="first_name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editLastName">Last Name</label>
+                        <input type="text" id="editLastName" name="last_name">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editMaidenName">Maiden Name</label>
+                        <input type="text" id="editMaidenName" name="maiden_name">
+                    </div>
+                    <div class="form-group">
+                        <label for="editNickname">Nickname</label>
+                        <input type="text" id="editNickname" name="nickname">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editBirthDate">Birth Date</label>
+                        <input type="date" id="editBirthDate" name="birth_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="editBirthPlace">Birth Place</label>
+                        <input type="text" id="editBirthPlace" name="birth_place">
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editGender">Gender</label>
+                        <select id="editGender" name="gender">
+                            <option value="">Select...</option>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="checkbox" id="editIsLiving" name="is_living"> Living
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group" id="editDeathDateGroup">
+                    <label for="editDeathDate">Death Date</label>
+                    <input type="date" id="editDeathDate" name="death_date">
+                </div>
+                
+                <div class="form-group">
+                    <label for="editPersonPhoto">Update Profile Photo</label>
+                    <input type="file" id="editPersonPhoto" name="photo" accept="image/*">
+                    <img id="editPersonPhotoPreview" style="display: none; max-width: 100px; margin-top: 10px; border-radius: 50%;">
+                    <div style="margin-top: 10px; color: #666; font-size: 12px;">Leave empty to keep current photo</div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editBioSummary">Short Biography</label>
+                    <textarea id="editBioSummary" name="bio_summary" rows="3" placeholder="Brief description of this person..."></textarea>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">💾 Save Changes</button>
+                    <button type="button" class="btn secondary" onclick="document.getElementById('editPersonModal').style.display='none'">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <!-- ===== END NEW EDIT PERSON MODAL ===== -->
+
+    <!-- ===== NEW DELETE CONFIRMATION MODAL ===== -->
+    <!-- ADD THIS ENTIRE MODAL TO YOUR EXISTING tree.html -->
+    <div id="deleteConfirmModal" class="modal">
+        <div class="modal-content" style="max-width: 500px;">
+            <span class="close">&times;</span>
+            <h2 style="color: #dc3545;">⚠️ Delete Family Member</h2>
+            
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 20px; margin: 20px 0;">
+                <h3 style="color: #856404; margin-bottom: 15px;">This action cannot be undone!</h3>
+                <p style="color: #856404; margin-bottom: 15px;">
+                    You are about to permanently delete <strong id="deletePersonName">Person Name</strong> and all associated data:
+                </p>
+                
+                <div style="margin: 15px 0;">
+                    <h4 style="color: #dc3545; margin-bottom: 10px;">What will be deleted:</h4>
+                    <ul style="color: #721c24; margin-left: 20px;">
+                        <li><strong id="deleteStoryCount">0</strong> stories and all their photos</li>
+                        <li><strong id="deleteRelationshipCount">0</strong> family relationships</li>
+                        <li>Profile photo and biographical information</li>
+                    </ul>
+                </div>
+                
+                <div style="margin: 15px 0;" id="deleteStoriesSection">
+                    <h4 style="color: #dc3545; margin-bottom: 8px;">Stories to be deleted:</h4>
+                    <ul id="deleteStoriesList" style="color: #721c24; margin-left: 20px; font-size: 14px;">
+                    </ul>
+                </div>
+                
+                <div style="margin: 15px 0;" id="deleteRelationshipsSection">
+                    <h4 style="color: #dc3545; margin-bottom: 8px;">Relationships to be removed:</h4>
+                    <ul id="deleteRelationshipsList" style="color: #721c24; margin-left: 20px; font-size: 14px;">
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="text-align: center; margin: 20px 0;">
+                <p style="color: #666; font-size: 14px; margin-bottom: 20px;">
+                    Type "DELETE" below to confirm this permanent action:
+                </p>
+                <input type="text" id="deleteConfirmText" placeholder="Type DELETE here" 
+                       style="padding: 10px; border: 2px solid #dc3545; border-radius: 5px; text-align: center;">
+            </div>
+            
+            <div class="form-actions">
+                <button id="confirmDeleteBtn" class="btn" style="background: #dc3545;" disabled>🗑️ Delete Permanently</button>
+                <button type="button" class="btn secondary" onclick="document.getElementById('deleteConfirmModal').style.display='none'">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <!-- ===== END NEW DELETE CONFIRMATION MODAL ===== -->
+
+    <!-- Add Relationship Modal -->
+    <div id="addRelationshipModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>🔗 Create Family Relationship</h2>
+            <form id="addRelationshipForm">
+                <input type="hidden" id="relationshipPerson1" name="person1_id">
+                <input type="hidden" id="relationshipPerson2" name="person2_id">
+                
+                <div id="relationshipPreview" style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; text-align: center; font-weight: bold;">
+                    Creating relationship between two people
+                </div>
+                
+                <div class="form-group">
+                    <label for="relationshipType">Relationship Type *</label>
+                    <select id="relationshipType" name="relationship_type" required>
+                        <option value="">Select relationship...</option>
+                        <option value="spouse">Spouse/Partner</option>
+                        <option value="parent">Parent-Child</option>
+                        <option value="sibling">Siblings</option>
+                        <option value="grandparent">Grandparent-Grandchild</option>
+                        <option value="aunt_uncle">Aunt/Uncle - Niece/Nephew</option>
+                        <option value="cousin">Cousins</option>
+                    </select>
+                </div>
+                
+                <div class="form-row" id="marriageFields" style="display: none;">
+                    <div class="form-group">
+                        <label for="marriageDate">Marriage Date</label>
+                        <input type="date" id="marriageDate" name="marriage_date">
+                    </div>
+                    <div class="form-group">
+                        <label for="divorceDate">Divorce Date (if applicable)</label>
+                        <input type="date" id="divorceDate" name="divorce_date">
+                    </div>
+                </div>
+                
+                <div class="form-actions">
+                    <button type="submit" class="btn primary">🔗 Create Relationship</button>
+                    <button type="button" class="btn secondary" onclick="document.getElementById('addRelationshipModal').style.display='none'">Cancel</button>
                 </div>
             </form>
         </div>
@@ -186,106 +344,74 @@
     <div id="addStoryModal" class="modal">
         <div class="modal-content large">
             <span class="close">&times;</span>
-            <h2>Add Story</h2>
-            <form id="addStoryForm">
-                <input type="hidden" id="storyPersonId" name="storyPersonId">
+            <h2>📖 Add New Story</h2>
+            <form id="storyForm">
+                <input type="hidden" id="storyPersonId" name="person_id">
                 
                 <div class="form-row">
                     <div class="form-group">
                         <label for="storyTitle">Story Title *</label>
-                        <input type="text" id="storyTitle" name="storyTitle" required placeholder="Give your story a memorable title...">
+                        <input type="text" id="storyTitle" name="title" required placeholder="Give your story a memorable title...">
                     </div>
                     <div class="form-group">
                         <label for="storyAuthor">Author (Your Name) *</label>
-                        <input type="text" id="storyAuthor" name="storyAuthor" required placeholder="Who is telling this story?">
+                        <input type="text" id="storyAuthor" name="author_name" required placeholder="Who is telling this story?">
                     </div>
                 </div>
                 
                 <div class="form-row">
                     <div class="form-group">
                         <label for="storyTheme">Theme *</label>
-                        <select id="storyTheme" name="storyTheme" required>
+                        <select id="storyTheme" name="theme" required>
                             <option value="">Select a theme...</option>
+                            <option value="Childhood">Childhood</option>
+                            <option value="Personality">Personality</option>
+                            <option value="Family Life">Family Life</option>
+                            <option value="Career">Career & Work</option>
+                            <option value="Adventures">Adventures & Travel</option>
+                            <option value="Relationships">Relationships</option>
+                            <option value="Wisdom">Wisdom & Lessons</option>
+                            <option value="Personal Memories">Personal Memories</option>
+                            <option value="General">General</option>
                         </select>
                     </div>
                     <div class="form-group">
                         <label for="timePeriod">Time Period</label>
-                        <input type="text" id="timePeriod" name="timePeriod" placeholder="e.g., Childhood, 1950s, College Years">
+                        <input type="text" id="timePeriod" name="time_period" placeholder="e.g., Childhood, 1950s, College Years">
                     </div>
                 </div>
                 
                 <div class="form-group">
                     <label for="yearOccurred">Year (approximate)</label>
-                    <input type="number" id="yearOccurred" name="yearOccurred" min="1900" max="2030" placeholder="When did this happen?">
+                    <input type="number" id="yearOccurred" name="year_occurred" min="1900" max="2030" placeholder="When did this happen?">
                 </div>
                 
-                <div class="form-group" id="storyQuestionsGroup" style="display: none;">
+                <div class="form-group" id="themeQuestionsGroup" style="display: none;">
                     <label>Guided Questions (optional - select ones you'd like to answer)</label>
-                    <div id="storyQuestions" class="theme-questions"></div>
+                    <div class="theme-questions"></div>
                 </div>
                 
                 <div class="form-group">
                     <label for="storyText">Your Story *</label>
-                    <textarea id="storyText" name="storyText" rows="8" required placeholder="Tell the story here..."></textarea>
+                    <textarea id="storyText" name="story_text" rows="8" required placeholder="Tell the story here..."></textarea>
                 </div>
                 
                 <div class="form-group">
                     <label for="storyPhoto">Add Photo</label>
-                    <input type="file" id="storyPhoto" name="storyPhoto" accept="image/*">
+                    <input type="file" id="storyPhoto" name="photo" accept="image/*">
+                    <img id="storyPhotoPreview" style="display: none; max-width: 200px; margin-top: 10px; border-radius: 8px;">
                 </div>
                 
                 <div class="form-group">
                     <label>
-                        <input type="checkbox" id="isFeatured" name="isFeatured"> 
-                        Featured Story (highlight this story)
+                        <input type="checkbox" id="storyFeatured" name="is_featured"> 
+                        ⭐ Featured Story (highlight this story)
                     </label>
                 </div>
                 
                 <div class="form-actions">
-                    <button type="submit" class="btn primary">Save Story</button>
+                    <button type="submit" class="btn primary">💾 Save Story</button>
                     <button type="button" class="btn secondary" onclick="document.getElementById('addStoryModal').style.display='none'">Cancel</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Tree Settings Modal -->
-    <div id="settingsModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Tree Settings</h2>
-            <form id="settingsForm">
-                <div class="form-group">
-                    <label for="treeStyle">Tree Style</label>
-                    <select id="treeStyle" name="treeStyle">
-                        <option value="classic">Classic</option>
-                        <option value="modern">Modern</option>
-                        <option value="natural">Natural</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label for="colorScheme">Color Scheme</label>
-                    <select id="colorScheme" name="colorScheme">
-                        <option value="earth">Earth Tones</option>
-                        <option value="ocean">Ocean Blues</option>
-                        <option value="sunset">Sunset Colors</option>
-                        <option value="forest">Forest Greens</option>
-                    </select>
-                </div>
-                
-                <div class="form-group">
-                    <label>Display Options</label>
-                    <div class="checkbox-group">
-                        <label><input type="checkbox" id="showPhotos" name="showPhotos" checked> Show Photos</label>
-                        <label><input type="checkbox" id="showDates" name="showDates" checked> Show Birth/Death Dates</label>
-                        <label><input type="checkbox" id="showPlaces" name="showPlaces"> Show Birth Places</label>
-                    </div>
-                </div>
-                
-                <div class="form-actions">
-                    <button type="submit" class="btn primary">Save Settings</button>
-                    <button type="button" class="btn secondary" onclick="document.getElementById('settingsModal').style.display='none'">Cancel</button>
                 </div>
             </form>
         </div>
@@ -294,8 +420,106 @@
     <script>
         // Pass family code to JavaScript
         window.familyCode = '[[=family_code]]';
+        
+        // ===== NEW DELETE CONFIRMATION VALIDATION =====
+        // ADD THIS SCRIPT SECTION TO YOUR EXISTING tree.html
+        // Setup delete confirmation text validation
+        document.addEventListener('DOMContentLoaded', function() {
+            const deleteInput = document.getElementById('deleteConfirmText');
+            const deleteBtn = document.getElementById('confirmDeleteBtn');
+            
+            if (deleteInput && deleteBtn) {
+                deleteInput.addEventListener('input', function() {
+                    deleteBtn.disabled = this.value.toUpperCase() !== 'DELETE';
+                });
+            }
+            
+            // Show/hide marriage fields based on relationship type
+            const relationshipType = document.getElementById('relationshipType');
+            const marriageFields = document.getElementById('marriageFields');
+            
+            if (relationshipType && marriageFields) {
+                relationshipType.addEventListener('change', function() {
+                    marriageFields.style.display = this.value === 'spouse' ? 'flex' : 'none';
+                });
+            }
+            
+            // Handle living status changes
+            document.addEventListener('change', function(e) {
+                if (e.target.type === 'checkbox' && (e.target.id.includes('IsLiving'))) {
+                    const form = e.target.closest('form');
+                    const deathDateGroup = form.querySelector('[id*="DeathDateGroup"]');
+                    const deathDateInput = form.querySelector('input[name="death_date"]');
+                    
+                    if (deathDateGroup) {
+                        deathDateGroup.style.display = e.target.checked ? 'none' : 'block';
+                    }
+                    
+                    if (deathDateInput && e.target.checked) {
+                        deathDateInput.value = '';
+                    }
+                }
+            });
+            
+            // Tab switching functionality
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('tab-btn')) {
+                    const targetTab = e.target.getAttribute('data-tab');
+                    
+                    // Remove active class from all tabs
+                    document.querySelectorAll('.tab-btn').forEach(btn => {
+                        btn.classList.remove('active');
+                    });
+                    
+                    document.querySelectorAll('.tab-panel').forEach(panel => {
+                        panel.classList.remove('active');
+                    });
+                    
+                    // Add active class to clicked tab and corresponding panel
+                    e.target.classList.add('active');
+                    const panel = document.getElementById(`tab-${targetTab}`);
+                    if (panel) {
+                        panel.classList.add('active');
+                    }
+                }
+            });
+        });
+        // ===== END NEW VALIDATION SCRIPT =====
     </script>
     <script src="[[=URL('static', 'js/familyTree.js')]]"></script>
     [[pass]]
 </body>
 </html>
+
+<!--
+===== INSTRUCTIONS FOR ADDING TO YOUR PROJECT =====
+
+REPLACE YOUR ENTIRE tree.html FILE WITH THIS CODE
+
+Key sections added for Edit/Delete functionality:
+
+1. EDIT PERSON MODAL (lines ~125-200):
+   - Pre-populates form with existing person data
+   - Includes all same fields as add person
+   - Shows current photo with option to upload new one
+
+2. DELETE CONFIRMATION MODAL (lines ~205-280):
+   - Shows detailed preview of what will be deleted
+   - Lists all stories and relationships that will be removed
+   - Requires typing "DELETE" to confirm
+   - Cannot be undone warning
+
+3. UPDATED PERSON MODAL BUTTONS (lines ~25-30):
+   - Added "✏️ Edit Person" button
+   - Added "🗑️ Delete Person" button in red
+   - Positioned alongside existing "Add Story" button
+
+4. JAVASCRIPT VALIDATION (lines ~410-460):
+   - Delete confirmation text validation
+   - Living status change handlers
+   - Tab switching functionality
+   - Form interaction improvements
+
+The modals will automatically work with the updated familyTree.js file.
+No additional CSS needed - uses existing styling classes.
+-->
