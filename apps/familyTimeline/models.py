@@ -106,6 +106,11 @@ db.define_table(
 )
 
 # Helper functions for family tree operations
+def get_family_by_code(access_code):
+    """Get family by access code"""
+    family = db(db.families.access_code == access_code.upper()).select().first()
+    return family
+
 def create_family_tree(family_name, created_by):
     """Create a new family tree"""
     access_code = str(uuid.uuid4())[:8].upper()
@@ -264,6 +269,11 @@ def save_person_story(family_id, person_id, title, author_name, theme, story_tex
     db.commit()
     return story_id
 
+def get_family_by_code(access_code):
+    """Get family by access code"""
+    family = db(db.families.access_code == access_code.upper()).select().first()
+    return family
+
 def calculate_tree_positions(family_id, root_person_id=None):
     """Calculate optimal positions for tree layout"""
     # This is a simplified version - in practice you'd want more sophisticated tree layout algorithms
@@ -294,6 +304,37 @@ def calculate_tree_positions(family_id, root_person_id=None):
     
     db.commit()
     return positions
+
+def update_generation_levels(family_id):
+    """Update generation levels based on relationships"""
+    people = db(db.people.family_id == family_id).select()
+    relationships = db(db.relationships.family_id == family_id).select()
+    
+    # Simple algorithm: find root couple (generation 0), then assign levels
+    root_couple = []
+    
+    # Find a spouse relationship as potential root
+    spouse_rels = [r for r in relationships if r.relationship_type == 'spouse']
+    if spouse_rels:
+        first_spouse_rel = spouse_rels[0]
+        root_couple = [first_spouse_rel.person1_id, first_spouse_rel.person2_id]
+        
+        # Set root couple to generation 0
+        for person_id in root_couple:
+            db(db.people.id == person_id).update(generation_level=0)
+    
+    # Set children to generation 1, grandchildren to 2, etc.
+    parent_child_rels = [r for r in relationships if r.relationship_type == 'parent']
+    
+    for rel in parent_child_rels:
+        parent = db.people[rel.person1_id]
+        child_id = rel.person2_id
+        
+        if parent:
+            child_generation = (parent.generation_level or 0) + 1
+            db(db.people.id == child_id).update(generation_level=child_generation)
+    
+    db.commit()
 
 # Populate default theme questions (updated for person-centric stories)
 def populate_default_questions():

@@ -1,4 +1,607 @@
-/* Family Tree Styles */
+/* Enhanced Organic Family Tree Styles */
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Georgia', serif;
+    background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* Header Styles */
+#header {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255,255,255,0.95);
+    padding: 15px 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    z-index: 1000;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    backdrop-filter: blur(10px);
+}
+
+.header-left h1 {
+    font-size: 24px;
+    color: #2E7D32;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.family-code {
+    font-size: 12px;
+    color: #666;
+}
+
+.header-right {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.primary-btn {
+    padding: 12px 24px;
+    background: #2E7D32;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 8px rgba(46,125,50,0.3);
+    transition: all 0.3s ease;
+}
+
+.primary-btn:hover {
+    background: #388E3C;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(46,125,50,0.4);
+}
+
+.secondary-btn {
+    padding: 8px 16px;
+    background: rgba(255,255,255,0.9);
+    border: 2px solid #2E7D32;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    color: #2E7D32;
+    transition: all 0.3s ease;
+}
+
+.secondary-btn:hover {
+    background: #2E7D32;
+    color: white;
+}
+
+/* Organic Tree Container */
+.tree-container {
+    position: fixed;
+    top: 80px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
+    background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
+}
+
+.organic-tree-canvas {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    cursor: grab;
+}
+
+.organic-tree-canvas:active {
+    cursor: grabbing;
+}
+
+/* Organic Tree Controls */
+.organic-tree-controls {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    background: rgba(255,255,255,0.95);
+    padding: 15px 25px;
+    border-radius: 30px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    backdrop-filter: blur(10px);
+    border: 2px solid rgba(46,125,50,0.1);
+}
+
+.control-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.mode-btn {
+    padding: 10px 20px;
+    background: linear-gradient(45deg, #4CAF50, #2E7D32);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+}
+
+.mode-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+}
+
+.mode-btn.active {
+    background: linear-gradient(45deg, #FF9800, #F57C00);
+    animation: pulse 2s infinite;
+}
+
+.zoom-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 15px;
+    border-left: 2px solid rgba(46,125,50,0.2);
+    border-right: 2px solid rgba(46,125,50,0.2);
+}
+
+.control-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    border-radius: 50%;
+    background: linear-gradient(45deg, #8BC34A, #4CAF50);
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(139,195,74,0.3);
+}
+
+.control-btn:hover {
+    transform: scale(1.1);
+    box-shadow: 0 6px 18px rgba(139,195,74,0.4);
+}
+
+#zoomLevel {
+    font-size: 14px;
+    font-weight: bold;
+    color: #2E7D32;
+    min-width: 60px;
+    text-align: center;
+    padding: 8px;
+    background: rgba(46,125,50,0.1);
+    border-radius: 15px;
+}
+
+.tree-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn {
+    padding: 10px 18px;
+    background: linear-gradient(45deg, #FF9800, #F57C00);
+    color: white;
+    border: none;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 12px rgba(255,152,0,0.3);
+}
+
+.action-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(255,152,0,0.4);
+}
+
+/* Organic SVG Tree Styles */
+#organicTreeSVG {
+    width: 100%;
+    height: 100%;
+    transition: transform 0.3s ease;
+}
+
+.organic-person {
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.organic-person:hover {
+    filter: brightness(1.15) drop-shadow(0 0 15px rgba(46,125,50,0.6));
+}
+
+.organic-branch {
+    transition: all 0.5s ease;
+}
+
+.organic-branch:hover {
+    stroke-width: 12;
+    filter: brightness(1.1) drop-shadow(0 0 8px rgba(139,69,19,0.5));
+}
+
+/* Connection Mode Styles */
+.person-node.connectable {
+    animation: organicPulse 1.5s infinite;
+}
+
+.person-node.connectable:hover {
+    animation: organicGlow 0.8s infinite;
+}
+
+.person-node.connection-start {
+    filter: drop-shadow(0 0 20px #FFD700) brightness(1.3);
+    animation: connectionReady 1s infinite;
+}
+
+@keyframes organicPulse {
+    0%, 100% { 
+        filter: brightness(1) drop-shadow(0 0 5px rgba(76,175,80,0.5));
+    }
+    50% { 
+        filter: brightness(1.1) drop-shadow(0 0 15px rgba(76,175,80,0.8));
+    }
+}
+
+@keyframes organicGlow {
+    0%, 100% { 
+        filter: brightness(1.1) drop-shadow(0 0 10px rgba(255,215,0,0.6));
+    }
+    50% { 
+        filter: brightness(1.3) drop-shadow(0 0 25px rgba(255,215,0,0.9));
+    }
+}
+
+@keyframes connectionReady {
+    0%, 100% { 
+        filter: drop-shadow(0 0 15px #FFD700) brightness(1.2);
+    }
+    50% { 
+        filter: drop-shadow(0 0 30px #FFD700) brightness(1.4);
+    }
+}
+
+/* Branch Growing Animation */
+@keyframes growBranch {
+    from {
+        stroke-dashoffset: 100%;
+    }
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+.organic-branch.growing {
+    animation: growBranch 1.5s ease-out forwards;
+}
+
+/* Modal Styles Enhanced */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 2000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.6);
+    backdrop-filter: blur(8px);
+}
+
+.modal-content {
+    background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
+    margin: 2% auto;
+    padding: 35px;
+    border-radius: 20px;
+    width: 90%;
+    max-width: 600px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.3);
+    border: 3px solid rgba(46,125,50,0.1);
+    animation: modalSlideIn 0.4s ease;
+}
+
+.modal-content.large {
+    max-width: 900px;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-60px) scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* Relationship Modal Specific */
+.relationship-modal {
+    text-align: center;
+    max-width: 500px;
+}
+
+.relationship-modal h2 {
+    color: #2E7D32;
+    margin-bottom: 25px;
+    font-size: 28px;
+}
+
+.relationship-persons {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    margin: 30px 0;
+    padding: 20px;
+    background: rgba(46,125,50,0.05);
+    border-radius: 15px;
+    border: 2px solid rgba(46,125,50,0.1);
+}
+
+.relationship-person {
+    text-align: center;
+    padding: 15px;
+}
+
+.relationship-person .name {
+    font-size: 18px;
+    font-weight: bold;
+    color: #2E7D32;
+    margin-bottom: 5px;
+}
+
+.relationship-person .details {
+    font-size: 14px;
+    color: #666;
+}
+
+.relationship-arrow {
+    font-size: 30px;
+    color: #4CAF50;
+    animation: bounce 2s infinite;
+}
+
+@keyframes bounce {
+    0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+    40% { transform: translateY(-10px); }
+    60% { transform: translateY(-5px); }
+}
+
+.relationship-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin: 25px 0;
+}
+
+.relationship-btn {
+    padding: 15px 20px;
+    background: linear-gradient(45deg, #4CAF50, #2E7D32);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+}
+
+.relationship-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(76,175,80,0.4);
+    background: linear-gradient(45deg, #66BB6A, #388E3C);
+}
+
+.relationship-btn.extended {
+    background: linear-gradient(45deg, #FF9800, #F57C00);
+    box-shadow: 0 4px 15px rgba(255,152,0,0.3);
+}
+
+.relationship-btn.extended:hover {
+    background: linear-gradient(45deg, #FFB74D, #FB8C00);
+    box-shadow: 0 8px 25px rgba(255,152,0,0.4);
+}
+
+/* Form Styles Enhanced */
+.form-row {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 25px;
+    flex: 1;
+}
+
+label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: bold;
+    color: #2E7D32;
+    font-size: 16px;
+}
+
+input, textarea, select {
+    width: 100%;
+    padding: 15px;
+    border: 2px solid #ddd;
+    border-radius: 10px;
+    font-size: 16px;
+    font-family: inherit;
+    transition: all 0.3s ease;
+    background: rgba(255,255,255,0.9);
+}
+
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: #4CAF50;
+    box-shadow: 0 0 0 4px rgba(76,175,80,0.1);
+    background: white;
+}
+
+.btn {
+    padding: 15px 30px;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-block;
+    text-align: center;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.btn.primary {
+    background: linear-gradient(45deg, #4CAF50, #2E7D32);
+    color: white;
+}
+
+.btn.primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(76,175,80,0.3);
+}
+
+.btn.secondary {
+    background: linear-gradient(45deg, #f5f5f5, #e0e0e0);
+    color: #666;
+}
+
+.btn.secondary:hover {
+    background: linear-gradient(45deg, #e0e0e0, #d5d5d5);
+    transform: translateY(-2px);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    #header {
+        flex-direction: column;
+        gap: 10px;
+        padding: 10px;
+    }
+    
+    .organic-tree-controls {
+        flex-direction: column;
+        gap: 15px;
+        bottom: 10px;
+        right: 10px;
+        left: 10px;
+        padding: 15px;
+    }
+    
+    .control-group, .tree-actions {
+        justify-content: center;
+    }
+    
+    .modal-content {
+        margin: 5% auto;
+        padding: 25px;
+        width: 95%;
+    }
+    
+    .relationship-options {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-row {
+        flex-direction: column;
+        gap: 0;
+    }
+}
+
+/* Landing Page Styles */
+.landing-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+    text-align: center;
+}
+
+.welcome-card {
+    background: linear-gradient(135deg, white 0%, #f8fff8 100%);
+    padding: 60px;
+    border-radius: 25px;
+    box-shadow: 0 25px 80px rgba(0,0,0,0.1);
+    max-width: 700px;
+    width: 100%;
+    border: 3px solid rgba(46,125,50,0.1);
+}
+
+.welcome-card h1 {
+    color: #2E7D32;
+    margin-bottom: 25px;
+    font-size: 52px;
+}
+
+.welcome-card p {
+    margin-bottom: 45px;
+    color: #666;
+    line-height: 1.7;
+    font-size: 20px;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 25px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.action-buttons .btn {
+    min-width: 180px;
+    font-size: 18px;
+}
+
+/* Loading and Transition States */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 30px;
+    height: 30px;
+    margin: -15px 0 0 -15px;
+    border: 3px solid #4CAF50;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}/* Family Tree Styles */
 
 * {
     margin: 0;
