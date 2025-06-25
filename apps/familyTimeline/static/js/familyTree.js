@@ -356,14 +356,19 @@ class SimpleFamilyTree {
         }
     }
     
+
     async createStarterPerson() {
+        console.log('Creating starter person for family:', this.familyCode);
+        
         const starterData = {
-            family_code: this.familyCode,
+            family_id: parseInt(this.familyCode), // Make sure it's an integer
             first_name: 'Click to Edit',
             last_name: '',
             is_living: true,
             bio_summary: 'This is your family tree starter. Click to edit and add your information!'
         };
+        
+        console.log('Starter person data:', starterData);
         
         try {
             const response = await fetch('/familyTimeline/api/person', {
@@ -372,16 +377,33 @@ class SimpleFamilyTree {
                 body: JSON.stringify(starterData)
             });
             
-            const result = await response.json();
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
+            
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            let result;
+            try {
+                result = JSON.parse(responseText);
+            } catch (parseError) {
+                console.error('Failed to parse JSON response:', parseError);
+                console.error('Response text was:', responseText);
+                throw new Error('Server returned invalid JSON: ' + responseText);
+            }
+            
             if (result.success) {
                 console.log('Created starter person with ID:', result.person_id);
                 // Reload data to get the new person with proper ID
                 await this.loadTreeData();
             } else {
                 console.error('Failed to create starter person:', result);
+                throw new Error(result.message || 'Unknown error creating starter person');
             }
         } catch (error) {
             console.error('Error creating starter person:', error);
+            // Don't throw the error - just log it and continue without a starter person
+            console.log('Continuing without starter person...');
         }
     }
     setupModalEventListeners() {

@@ -99,7 +99,7 @@
         }
 
         .welcome-section {
-            background: linear-gradient(135d, #ffffff 0%, #f8fff8 100%);
+            background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
             border-radius: 20px;
             padding: 40px;
             margin-bottom: 40px;
@@ -374,7 +374,7 @@
                         <a href="[[=URL('profile')]]" class="dropdown-item">
                             👤 Profile Settings
                         </a>
-                        <a href="[[=URL('change-password')]]" class="dropdown-item">
+                        <a href="[[=URL('changePassword')]]" class="dropdown-item">
                             🔒 Change Password
                         </a>
                         <div style="border-top: 1px solid #eee; margin: 10px 0;"></div>
@@ -393,7 +393,7 @@
             <div class="welcome-section">
                 <h2>Welcome to Your Family Tree Dashboard!</h2>
                 <p>Start preserving your family's precious memories by creating your first family tree.</p>
-                <a href="[[=URL('create-tree')]]" class="create-tree-btn">
+                <a href="[[=URL('createTree')]]" class="create-tree-btn">
                     <span>🌱</span>
                     Create Your First Family Tree
                 </a>
@@ -402,7 +402,7 @@
             <div class="welcome-section">
                 <h2>Welcome back, [[=user.first_name or "there"]]!</h2>
                 <p>Continue building your family legacy or start a new tree.</p>
-                <a href="[[=URL('create-tree')]]" class="create-tree-btn">
+                <a href="[[=URL('createTree')]]" class="create-tree-btn">
                     <span>🌱</span>
                     Create New Family Tree
                 </a>
@@ -421,7 +421,7 @@
                 [[if family_trees:]]
                 <div class="trees-grid">
                     [[for tree in family_trees:]]
-                    <div class="tree-card" onclick="window.location.href='[[=URL("tree", tree.id)]]'">
+                    <div class="tree-card" data-tree-id="[[=tree.id]]" data-action="view-tree">
                         <div class="tree-card-header">
                             <div>
                                 <div class="tree-title">[[=tree.family_name]]</div>
@@ -446,9 +446,9 @@
                                 👥 View Tree
                             </a>
                             [[if tree.user_role in ['Owner', 'Member']:]]
-                            <a href="#" class="btn-small btn-secondary" onclick="event.stopPropagation(); manageTree([[=tree.id]]);">
+                            <button class="btn-small btn-secondary" data-tree-id="[[=tree.id]]" data-action="manage-tree">
                                 ⚙️ Manage
-                            </a>
+                            </button>
                             [[pass]]
                         </div>
                     </div>
@@ -459,7 +459,7 @@
                     <div class="empty-state-icon">🌳</div>
                     <h4>No Family Trees Yet</h4>
                     <p>You haven't joined any family trees yet. Create one or ask a family member to invite you!</p>
-                    <a href="[[=URL('create-tree')]]" class="create-tree-btn">
+                    <a href="[[=URL('createTree')]]" class="create-tree-btn">
                         <span>🌱</span>
                         Create Your First Tree
                     </a>
@@ -474,7 +474,7 @@
                     <h3>Quick Actions</h3>
                 </div>
                 <div class="trees-grid">
-                    <div class="tree-card" style="cursor: pointer;" onclick="window.location.href='[[=URL("create-tree")]]'">
+                    <div class="tree-card" data-action="createTree">
                         <div style="text-align: center; padding: 20px;">
                             <div style="font-size: 48px; margin-bottom: 15px;">🌱</div>
                             <div class="tree-title">Create New Tree</div>
@@ -502,25 +502,46 @@
             dropdown.classList.toggle('show');
         }
 
-        function manageTree(treeId) {
-            // TODO: Open tree management modal
-            alert('Tree management coming soon!');
-        }
-
-        // Close dropdown when clicking outside
-        document.addEventListener('click', function(event) {
-            const userMenu = document.querySelector('.user-menu');
-            const dropdown = document.getElementById('userDropdown');
-            
-            if (!userMenu.contains(event.target)) {
-                dropdown.classList.remove('show');
-            }
-        });
-
-        // Add hover effects and animations
+        // Modern event handling with data attributes - FIXED
         document.addEventListener('DOMContentLoaded', function() {
-            const cards = document.querySelectorAll('.tree-card');
+            // Handle all tree card clicks
+            document.addEventListener('click', function(e) {
+                const card = e.target.closest('.tree-card');
+                if (!card) return;
+                
+                const action = card.getAttribute('data-action');
+                const treeId = card.getAttribute('data-tree-id');
+                
+                // Don't trigger card action if clicking on buttons or links
+                if (e.target.closest('button, a')) return;
+                
+                switch(action) {
+                    case 'view-tree':
+                        if (treeId) {
+                            // Use proper py4web URL generation approach
+                            window.location.href = '[[=URL("tree", "PLACEHOLDER")]]'.replace('PLACEHOLDER', treeId);
+                        }
+                        break;
+                    case 'createTree':
+                        window.location.href = '[[=URL("createTree")]]';
+                        break;
+                }
+            });
+            
+            // Handle manage tree buttons
+            document.addEventListener('click', function(e) {
+                if (e.target.getAttribute('data-action') === 'manage-tree') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    const treeId = e.target.getAttribute('data-tree-id');
+                    manageTree(treeId);
+                }
+            });
+            
+            // Add hover effects
+            const cards = document.querySelectorAll('.tree-card[data-action]');
             cards.forEach(card => {
+                card.style.cursor = 'pointer';
                 card.addEventListener('mouseenter', function() {
                     this.style.transform = 'translateY(-5px)';
                 });
@@ -529,6 +550,21 @@
                     this.style.transform = 'translateY(0)';
                 });
             });
+        });
+
+        function manageTree(treeId) {
+            console.log('Managing tree:', treeId);
+            alert('Tree management coming soon!');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('userDropdown');
+            
+            if (userMenu && dropdown && !userMenu.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
         });
     </script>
 </body>

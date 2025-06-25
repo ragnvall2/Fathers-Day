@@ -195,8 +195,12 @@ def get_user_display_name(user_id):
     else:
         return user.email
 
+# REPLACE the get_user_family_trees function in your models.py with this:
+
 def get_user_family_trees(user_id):
     """Get all family trees a user has access to"""
+    from types import SimpleNamespace
+    
     # Join family_members with families to get user's trees
     query = (
         (db.family_members.user_id == user_id) &
@@ -219,14 +223,18 @@ def get_user_family_trees(user_id):
         member_count = db(db.family_members.family_id == family.id).count()
         story_count = db(db.stories.family_id == family.id).count()
         
-        family_trees.append({
-            'id': family.id,
-            'family_name': family.family_name,
-            'created_at': family.created_at,
-            'user_role': member.role.title(),
-            'member_count': member_count,
-            'story_count': story_count
-        })
+        # Create a proper object-like structure that works with dot notation
+        tree_data = SimpleNamespace()
+        tree_data.id = family.id
+        tree_data.family_name = family.family_name
+        tree_data.created_at = family.created_at
+        tree_data.user_role = member.role.title()
+        tree_data.member_count = member_count
+        tree_data.story_count = story_count
+        tree_data.owner_id = family.owner_id
+        tree_data.created_by = family.created_by
+        
+        family_trees.append(tree_data)
     
     return family_trees
 
@@ -367,16 +375,32 @@ def get_family_tree_data(family_id):
 
 def add_person(family_id, first_name, last_name=None, created_by_user_id=None, **kwargs):
     """Add a new person to the family tree"""
-    person_id = db.people.insert(
-        family_id=family_id,
-        first_name=first_name,
-        last_name=last_name,
-        created_by_user_id=created_by_user_id,
-        last_edited_by_user_id=created_by_user_id,
-        **kwargs
-    )
-    db.commit()
-    return person_id
+    try:
+        print(f"DEBUG: add_person called with family_id={family_id}, first_name={first_name}")
+        
+        person_data = {
+            'family_id': family_id,
+            'first_name': first_name,
+            'last_name': last_name,
+            'created_by_user_id': created_by_user_id,
+            'last_edited_by_user_id': created_by_user_id,
+        }
+        
+        # Add all additional kwargs
+        person_data.update(kwargs)
+        
+        print(f"DEBUG: Inserting person with data: {person_data}")
+        
+        person_id = db.people.insert(**person_data)
+        db.commit()
+        
+        print(f"DEBUG: Person created successfully with ID: {person_id}")
+        return person_id
+        
+    except Exception as e:
+        print(f"ERROR in add_person: {e}")
+        db.rollback()
+        raise e
 
 def save_person_story(family_id, person_id, author_user_id, **kwargs):
     """Save a story for a specific person"""
