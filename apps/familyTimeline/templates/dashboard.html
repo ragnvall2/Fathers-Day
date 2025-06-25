@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Family Trees - Dashboard</title>
+    <link rel="stylesheet" href="[[=URL('static', 'css/tree-style.css')]]">
+    <style>
+        .dashboard-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
+            padding-top: 80px;
+        }
+
+        .dashboard-header {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            background: rgba(255,255,255,0.95);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 1000;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .dashboard-header h1 {
+            color: #2E7D32;
+            font-size: 24px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-menu {
+            position: relative;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #2E7D32;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            padding: 10px 0;
+            min-width: 200px;
+            display: none;
+            z-index: 1001;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 12px 20px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .dropdown-item:hover {
+            background: #f0f0f0;
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .welcome-section {
+            background: linear-gradient(135d, #ffffff 0%, #f8fff8 100%);
+            border-radius: 20px;
+            padding: 40px;
+            margin-bottom: 40px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .welcome-section h2 {
+            color: #2E7D32;
+            font-size: 32px;
+            margin-bottom: 10px;
+        }
+
+        .welcome-section p {
+            color: #666;
+            font-size: 18px;
+            margin-bottom: 30px;
+        }
+
+        .create-tree-btn {
+            background: linear-gradient(45deg, #4CAF50, #2E7D32);
+            color: white;
+            padding: 15px 30px;
+            border: none;
+            border-radius: 12px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 6px 20px rgba(76,175,80,0.3);
+        }
+
+        .create-tree-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(76,175,80,0.4);
+        }
+
+        .trees-section {
+            margin-bottom: 40px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+        }
+
+        .section-header h3 {
+            color: #2E7D32;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .trees-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 25px;
+        }
+
+        .tree-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+            border: 2px solid rgba(46,125,50,0.1);
+            cursor: pointer;
+        }
+
+        .tree-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.15);
+            border-color: rgba(46,125,50,0.3);
+        }
+
+        .tree-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 15px;
+        }
+
+        .tree-title {
+            color: #2E7D32;
+            font-size: 20px;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+
+        .tree-role {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .tree-role.owner {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+
+        .tree-role.member {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .tree-role.editor {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .tree-role.viewer {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .tree-stats {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 10px;
+            background: rgba(46,125,50,0.1);
+            border-radius: 8px;
+        }
+
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2E7D32;
+            display: block;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #666;
+            text-transform: uppercase;
+            font-weight: bold;
+        }
+
+        .tree-meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .tree-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-small {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: #2E7D32;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1B5E20;
+        }
+
+        .btn-secondary {
+            background: rgba(46,125,50,0.1);
+            color: #2E7D32;
+            border: 2px solid rgba(46,125,50,0.2);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(46,125,50,0.2);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
+            border-radius: 15px;
+            border: 2px dashed rgba(46,125,50,0.3);
+        }
+
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h4 {
+            color: #2E7D32;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-header {
+                flex-direction: column;
+                gap: 10px;
+                padding: 10px;
+            }
+
+            .trees-grid {
+                grid-template-columns: 1fr;
+                gap: 20px;
+            }
+
+            .tree-stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+
+            .tree-actions {
+                flex-direction: column;
+            }
+
+            .main-content {
+                padding: 20px 10px;
+            }
+
+            .welcome-section {
+                padding: 30px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <h1>
+                <span>🌳</span>
+                My Family Trees
+            </h1>
+            <div class="user-info">
+                <span>Welcome, [[=user.first_name or user.email]]!</span>
+                <div class="user-menu">
+                    <div class="user-avatar" onclick="toggleUserMenu()">
+                        [[=user.first_name[0].upper() if user.first_name else user.email[0].upper()]]
+                    </div>
+                    <div class="dropdown-menu" id="userDropdown">
+                        <a href="[[=URL('profile')]]" class="dropdown-item">
+                            👤 Profile Settings
+                        </a>
+                        <a href="[[=URL('change-password')]]" class="dropdown-item">
+                            🔒 Change Password
+                        </a>
+                        <div style="border-top: 1px solid #eee; margin: 10px 0;"></div>
+                        <a href="[[=URL('logout')]]" class="dropdown-item">
+                            🚪 Sign Out
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <!-- Welcome Section -->
+            [[if not family_trees:]]
+            <div class="welcome-section">
+                <h2>Welcome to Your Family Tree Dashboard!</h2>
+                <p>Start preserving your family's precious memories by creating your first family tree.</p>
+                <a href="[[=URL('create-tree')]]" class="create-tree-btn">
+                    <span>🌱</span>
+                    Create Your First Family Tree
+                </a>
+            </div>
+            [[else:]]
+            <div class="welcome-section">
+                <h2>Welcome back, [[=user.first_name or "there"]]!</h2>
+                <p>Continue building your family legacy or start a new tree.</p>
+                <a href="[[=URL('create-tree')]]" class="create-tree-btn">
+                    <span>🌱</span>
+                    Create New Family Tree
+                </a>
+            </div>
+            [[pass]]
+
+            <!-- Family Trees Section -->
+            <div class="trees-section">
+                <div class="section-header">
+                    <h3>Your Family Trees</h3>
+                    [[if family_trees:]]
+                    <span style="color: #666;">[[=len(family_trees)]] tree[[='s' if len(family_trees) != 1 else '']]</span>
+                    [[pass]]
+                </div>
+
+                [[if family_trees:]]
+                <div class="trees-grid">
+                    [[for tree in family_trees:]]
+                    <div class="tree-card" onclick="window.location.href='[[=URL("tree", tree.id)]]'">
+                        <div class="tree-card-header">
+                            <div>
+                                <div class="tree-title">[[=tree.family_name]]</div>
+                                <div class="tree-meta">Created [[=tree.created_at.strftime('%B %Y')]]</div>
+                            </div>
+                            <div class="tree-role [[=tree.user_role.lower()]]">[[=tree.user_role]]</div>
+                        </div>
+                        
+                        <div class="tree-stats">
+                            <div class="stat-item">
+                                <span class="stat-number">[[=tree.member_count or 0]]</span>
+                                <span class="stat-label">Members</span>
+                            </div>
+                            <div class="stat-item">
+                                <span class="stat-number">[[=tree.story_count or 0]]</span>
+                                <span class="stat-label">Stories</span>
+                            </div>
+                        </div>
+
+                        <div class="tree-actions">
+                            <a href="[[=URL('tree', tree.id)]]" class="btn-small btn-primary">
+                                👥 View Tree
+                            </a>
+                            [[if tree.user_role in ['Owner', 'Member']:]]
+                            <a href="#" class="btn-small btn-secondary" onclick="event.stopPropagation(); manageTree([[=tree.id]]);">
+                                ⚙️ Manage
+                            </a>
+                            [[pass]]
+                        </div>
+                    </div>
+                    [[pass]]
+                </div>
+                [[else:]]
+                <div class="empty-state">
+                    <div class="empty-state-icon">🌳</div>
+                    <h4>No Family Trees Yet</h4>
+                    <p>You haven't joined any family trees yet. Create one or ask a family member to invite you!</p>
+                    <a href="[[=URL('create-tree')]]" class="create-tree-btn">
+                        <span>🌱</span>
+                        Create Your First Tree
+                    </a>
+                </div>
+                [[pass]]
+            </div>
+
+            <!-- Quick Actions Section -->
+            [[if family_trees:]]
+            <div class="trees-section">
+                <div class="section-header">
+                    <h3>Quick Actions</h3>
+                </div>
+                <div class="trees-grid">
+                    <div class="tree-card" style="cursor: pointer;" onclick="window.location.href='[[=URL("create-tree")]]'">
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">🌱</div>
+                            <div class="tree-title">Create New Tree</div>
+                            <p style="color: #666; margin: 10px 0;">Start a new family tree for another branch of your family</p>
+                        </div>
+                    </div>
+                    
+                    <div class="tree-card" style="cursor: pointer; opacity: 0.7;">
+                        <div style="text-align: center; padding: 20px;">
+                            <div style="font-size: 48px; margin-bottom: 15px;">✉️</div>
+                            <div class="tree-title">Join by Invitation</div>
+                            <p style="color: #666; margin: 10px 0;">Enter an invitation code to join a family tree</p>
+                            <div style="font-size: 12px; color: #999; margin-top: 15px;">Coming Soon</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            [[pass]]
+        </div>
+    </div>
+
+    <script>
+        function toggleUserMenu() {
+            const dropdown = document.getElementById('userDropdown');
+            dropdown.classList.toggle('show');
+        }
+
+        function manageTree(treeId) {
+            // TODO: Open tree management modal
+            alert('Tree management coming soon!');
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const userMenu = document.querySelector('.user-menu');
+            const dropdown = document.getElementById('userDropdown');
+            
+            if (!userMenu.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        // Add hover effects and animations
+        document.addEventListener('DOMContentLoaded', function() {
+            const cards = document.querySelectorAll('.tree-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-5px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+        });
+    </script>
+</body>
+</html>

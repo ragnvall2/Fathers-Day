@@ -1,111 +1,204 @@
 """
-Family Tree Controllers - Complete with Edit/Delete Person functionality
+Family Tree Controllers - Complete with Authentication Support
 
 REPLACE YOUR ENTIRE apps/familyTimeline/controllers.py FILE WITH THIS CODE
 """
 import os
 import json
 import base64
+from datetime import datetime
 from py4web import action, request, abort, redirect, URL, HTTP, response
 from py4web.utils.form import Form, FormStyleBulma
 
 # Import from common and models
-from .common import db, session, T, cache, auth, flash
+from .common import db, session, T, cache, auth, flash, authenticated, unauthenticated
 from .models import (
-    create_family_tree, get_family_by_code, 
+    create_family_tree_with_owner, get_user_family_trees, check_user_permission,
     get_family_tree_data, get_person_stories, save_person_story,
     add_person, add_relationship, calculate_tree_positions,
-    update_generation_levels
+    update_generation_levels, get_user_display_name
 )
 
-# Main tree page
+# ==========================================
+# MAIN PAGES
+# ==========================================
+
+# Landing page - redirect based on auth status
 @action('index')
-@action.uses('tree.html', db)
+@action.uses('index.html', db, session, auth)
 def index():
-    """Main family tree page"""
-    family_code = request.query.get('family', '')
-    family = None
+    """Main landing page - redirect to dashboard if logged in"""
+    if auth.user:
+        # User is logged in, redirect to dashboard
+        redirect(URL('dashboard'))
+    else:
+        # Show public landing page
+        return dict(authenticated=False)
+
+# User Dashboard (after login)
+@action('dashboard')
+@action.uses('dashboard.html', db, session, auth.user)
+def dashboard():
+    """User dashboard showing all family trees they have access to"""
+    user_id = auth.user_id
     
-    if family_code:
-        family = get_family_by_code(family_code)
-        if not family:
-            redirect(URL('index'))
+    # Get user's family trees
+    family_trees = get_user_family_trees(user_id)
+    
+    return dict(
+        user=auth.user,
+        family_trees=family_trees
+    )
+
+# Family tree view (auth required)
+@action('tree/<family_id>')
+@action.uses('tree.html', db, session, auth.user)
+def view_tree(family_id):
+    """View a specific family tree (requires authentication)"""
+    try:
+        family_id_int = int(family_id)
+    except ValueError:
+        abort(404)
+    
+    # Check if user has access to this family tree
+    if not check_user_permission(auth.user_id, family_id_int, 'view'):
+        abort(403, "You don't have permission to access this family tree")
+    
+    family = db.families[family_id_int]
+    if not family:
+        abort(404)
     
     return dict(
         family=family,
-        family_code=family_code
+        family_code=family.id  # Use ID instead of access code
     )
 
 # Create family tree page
-@action('create')
-@action.uses('create.html')
-def create_timeline():
-    """Create new family tree page"""
-    return dict()
+@action('create-tree')
+@action.uses('create-tree.html', db, session, auth.user)
+def create_tree_page():
+    """Create new family tree page (requires authentication)"""
+    return dict(user=auth.user)
 
-# Join family page
-@action('join')
-@action.uses('join.html')
-def join_timeline():
-    """Join existing family tree page"""
-    return dict()
+# ==========================================
+# AUTHENTICATION PAGES
+# ==========================================
+
+@action('login')
+@action.uses('auth.html', db, session, auth)
+def login():
+    """Custom login page"""
+    if auth.user:
+        redirect(URL('dashboard'))
+    
+    form = auth.form('login')
+    
+    return dict(
+        form=form,
+        title="Sign In"
+    )
+
+@action('register')
+@action.uses('auth.html', db, session, auth)
+def register():
+    """Custom register page"""
+    if auth.user:
+        redirect(URL('dashboard'))
+    
+    form = auth.form('register')
+    
+    return dict(
+        form=form,
+        title="Create Account"
+    )
+
+@action('logout')
+@action.uses(db, session, auth)
+def logout():
+    """Logout and redirect"""
+    auth.session.clear()
+    redirect(URL('index'))
+
+@action('profile')
+@action.uses('auth.html', db, session, auth.user)
+def profile():
+    """User profile management"""
+    form = auth.form('profile')
+    
+    return dict(
+        form=form,
+        title="Profile Settings"
+    )
+
+@action('change-password')
+@action.uses('auth.html', db, session, auth.user)
+def change_password():
+    """Change password page"""
+    form = auth.form('change_password')
+    
+    return dict(
+        form=form,
+        title="Change Password"
+    )
+
+@action('forgot-password')
+@action.uses('auth.html', db, session, auth)
+def forgot_password():
+    """Password reset request page"""
+    form = auth.form('request_reset_password')
+    
+    return dict(
+        form=form,
+        title="Reset Password"
+    )
+
+# ==========================================
+# API ENDPOINTS
+# ==========================================
 
 # Create family tree API
-@action('create_family', method='POST')
-@action.uses(db)
+@action('api/create-family', method='POST')
+@action.uses(db, session, auth.user)
 def create_family_endpoint():
-    """Create a new family tree"""
+    """Create a new family tree (requires authentication)"""
     data = request.json
     
-    if not data or 'family_name' not in data or 'created_by' not in data:
+    if not data or 'family_name' not in data:
         raise HTTP(400, "Missing required fields")
     
-    family_id, access_code = create_family_tree(
-        data['family_name'], 
-        data['created_by']
-    )
+    user_id = auth.user_id
+    
+    # Create family tree with authenticated user as owner
+    family_id = create_family_tree_with_owner(data['family_name'], user_id)
     
     return dict(
         success=True,
         family_id=family_id,
-        access_code=access_code,
-        redirect_url=URL('index', vars={'family': access_code})
-    )
-
-# Join family tree API
-@action('join_family', method='POST')
-@action.uses(db)
-def join_family_endpoint():
-    """Join an existing family tree"""
-    data = request.json
-    
-    if not data or 'access_code' not in data:
-        raise HTTP(400, "Missing access code")
-    
-    family = get_family_by_code(data['access_code'])
-    if not family:
-        raise HTTP(404, "Family not found")
-    
-    return dict(
-        success=True,
-        family_id=family.id,
-        family_name=family.family_name,
-        redirect_url=URL('index', vars={'family': family.access_code})
+        redirect_url=URL('tree', family_id)
     )
 
 # Get tree data API
-@action('api/tree/<family_code>')
-@action.uses(db)
-def get_tree_data(family_code):
-    """Get complete tree data for a family"""
-    family = get_family_by_code(family_code)
+@action('api/tree/<family_id>')
+@action.uses(db, session, auth.user)
+def get_tree_data(family_id):
+    """Get complete tree data for a family (requires authentication)"""
+    try:
+        family_id_int = int(family_id)
+    except ValueError:
+        raise HTTP(400, "Invalid family ID")
+    
+    # Check if user has access to this family tree
+    if not check_user_permission(auth.user_id, family_id_int, 'view'):
+        raise HTTP(403, "You don't have permission to access this family tree")
+    
+    family = db.families[family_id_int]
     if not family:
         raise HTTP(404, "Family not found")
     
-    tree_data = get_family_tree_data(family.id)
+    tree_data = get_family_tree_data(family_id_int)
     
     # Get tree settings
-    tree_settings = db(db.tree_settings.family_id == family.id).select().first()
+    tree_settings = db(db.tree_settings.family_id == family_id_int).select().first()
     settings_data = {}
     if tree_settings:
         settings_data = {
@@ -125,20 +218,26 @@ def get_tree_data(family_code):
 
 # Add person API
 @action('api/person', method='POST')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def add_person_endpoint():
-    """Add a new person to the family tree"""
+    """Add a new person to the family tree (requires authentication)"""
     data = request.json
     
     # Validate required fields
-    if not data or 'family_code' not in data or 'first_name' not in data:
+    if not data or 'family_id' not in data or 'first_name' not in data:
         raise HTTP(400, "Missing required fields")
     
-    family = get_family_by_code(data['family_code'])
+    family_id = data['family_id']
+    
+    # Check if user has permission to add people to this family tree
+    if not check_user_permission(auth.user_id, family_id, 'edit'):
+        raise HTTP(403, "You don't have permission to add people to this family tree")
+    
+    family = db.families[family_id]
     if not family:
         raise HTTP(404, "Family not found")
     
-    # Create person
+    # Create person with user tracking
     person_data = {
         'first_name': data['first_name'],
         'last_name': data.get('last_name', ''),
@@ -150,7 +249,9 @@ def add_person_endpoint():
         'gender': data.get('gender', ''),
         'is_living': data.get('is_living', True),
         'bio_summary': data.get('bio_summary', ''),
-        'generation_level': data.get('generation_level', 0)
+        'generation_level': data.get('generation_level', 0),
+        'node_color': data.get('node_color', 'green'),
+        'node_shape': data.get('node_shape', 'circle')
     }
     
     # Handle photo if present
@@ -164,7 +265,11 @@ def add_person_endpoint():
         except Exception as e:
             print(f"Error processing photo: {e}")
     
-    person_id = add_person(family.id, **person_data)
+    person_id = add_person(
+        family_id, 
+        created_by_user_id=auth.user_id,
+        **person_data
+    )
     
     return dict(
         success=True,
@@ -174,7 +279,7 @@ def add_person_endpoint():
 
 # Get single person API
 @action('api/person/<person_id>')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def get_person_endpoint(person_id):
     """Get details for a specific person"""
     try:
@@ -185,6 +290,10 @@ def get_person_endpoint(person_id):
     person = db.people[person_id_int]
     if not person:
         raise HTTP(404, "Person not found")
+    
+    # Check if user has access to this person's family tree
+    if not check_user_permission(auth.user_id, person.family_id, 'view'):
+        raise HTTP(403, "You don't have permission to view this person")
     
     person_data = {
         'id': person.id,
@@ -199,16 +308,18 @@ def get_person_endpoint(person_id):
         'gender': person.gender or '',
         'bio_summary': person.bio_summary or '',
         'has_photo': bool(person.profile_photo),
-        'generation_level': person.generation_level
+        'generation_level': person.generation_level,
+        'node_color': person.node_color or 'green',
+        'node_shape': person.node_shape or 'circle'
     }
     
     return dict(person=person_data)
 
 # Update person API
 @action('api/person/<person_id>', method='PUT')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def update_person_endpoint(person_id):
-    """Update an existing person"""
+    """Update an existing person (requires authentication)"""
     try:
         person_id_int = int(person_id)
     except ValueError:
@@ -221,6 +332,12 @@ def update_person_endpoint(person_id):
     person = db.people[person_id_int]
     if not person:
         raise HTTP(404, "Person not found")
+    
+    # Check if user has permission to edit this person
+    # For now, allow if user can edit the family tree
+    # Later we can add more granular permissions
+    if not check_user_permission(auth.user_id, person.family_id, 'edit'):
+        raise HTTP(403, "You don't have permission to edit this person")
     
     # Update person data
     update_data = {
@@ -235,7 +352,8 @@ def update_person_endpoint(person_id):
         'is_living': data.get('is_living', True),
         'bio_summary': data.get('bio_summary', ''),
         'node_color': data.get('node_color', 'green'),
-        'node_shape': data.get('node_shape', 'circle')
+        'node_shape': data.get('node_shape', 'circle'),
+        'last_edited_by_user_id': auth.user_id  # Track who last edited
     }
     
     # Handle photo if present
@@ -260,7 +378,7 @@ def update_person_endpoint(person_id):
 
 # Delete person API
 @action('api/person/<person_id>', method='DELETE')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def delete_person_endpoint(person_id):
     """Delete a person and all associated data"""
     try:
@@ -271,6 +389,10 @@ def delete_person_endpoint(person_id):
     person = db.people[person_id_int]
     if not person:
         raise HTTP(404, "Person not found")
+    
+    # Check if user has permission to delete from this family tree
+    if not check_user_permission(auth.user_id, person.family_id, 'manage'):
+        raise HTTP(403, "You don't have permission to delete people from this family tree")
     
     try:
         # Get counts for confirmation response
@@ -308,7 +430,7 @@ def delete_person_endpoint(person_id):
 
 # Get person deletion preview API
 @action('api/person/<person_id>/delete-preview')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def get_delete_preview(person_id):
     """Get information about what will be deleted with this person"""
     try:
@@ -319,6 +441,10 @@ def get_delete_preview(person_id):
     person = db.people[person_id_int]
     if not person:
         raise HTTP(404, "Person not found")
+    
+    # Check if user has permission
+    if not check_user_permission(auth.user_id, person.family_id, 'view'):
+        raise HTTP(403, "You don't have permission to view this person")
     
     # Get stories
     stories = db(db.stories.person_id == person_id_int).select()
@@ -351,38 +477,45 @@ def get_delete_preview(person_id):
 
 # Add relationship API
 @action('api/relationship', method='POST')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def add_relationship_endpoint():
     """Create a relationship between two people"""
     data = request.json
     
     # Validate required fields
-    if not data or 'family_code' not in data or 'person1_id' not in data or 'person2_id' not in data or 'relationship_type' not in data:
+    if not data or 'family_id' not in data or 'person1_id' not in data or 'person2_id' not in data or 'relationship_type' not in data:
         raise HTTP(400, "Missing required fields")
     
-    family = get_family_by_code(data['family_code'])
+    family_id = data['family_id']
+    
+    # Check if user has permission to manage relationships in this family tree
+    if not check_user_permission(auth.user_id, family_id, 'edit'):
+        raise HTTP(403, "You don't have permission to manage relationships in this family tree")
+    
+    family = db.families[family_id]
     if not family:
         raise HTTP(404, "Family not found")
     
     # Verify both people exist and belong to family
-    person1 = db((db.people.id == data['person1_id']) & (db.people.family_id == family.id)).select().first()
-    person2 = db((db.people.id == data['person2_id']) & (db.people.family_id == family.id)).select().first()
+    person1 = db((db.people.id == data['person1_id']) & (db.people.family_id == family_id)).select().first()
+    person2 = db((db.people.id == data['person2_id']) & (db.people.family_id == family_id)).select().first()
     
     if not person1 or not person2:
         raise HTTP(404, "One or both people not found in this family")
     
     # Create the relationship
     relationship_id = add_relationship(
-        family.id,
+        family_id,
         data['person1_id'],
         data['person2_id'],
         data['relationship_type'],
+        created_by_user_id=auth.user_id,
         marriage_date=data.get('marriage_date'),
         divorce_date=data.get('divorce_date')
     )
     
     # Update generation levels if needed
-    update_generation_levels(family.id)
+    update_generation_levels(family_id)
     
     return dict(
         success=True,
@@ -392,7 +525,7 @@ def add_relationship_endpoint():
 
 # Get person's stories API
 @action('api/person/<person_id>/stories')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def get_person_stories_endpoint(person_id):
     """Get all stories for a specific person"""
     try:
@@ -404,31 +537,41 @@ def get_person_stories_endpoint(person_id):
     if not person:
         raise HTTP(404, "Person not found")
     
+    # Check if user has access to this person's family tree
+    if not check_user_permission(auth.user_id, person.family_id, 'view'):
+        raise HTTP(403, "You don't have permission to view stories for this person")
+    
     stories = get_person_stories(person_id_int)
     return dict(stories=stories)
 
 # Add story API
 @action('api/story', method='POST')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def add_story_endpoint():
-    """Add a new story for a person"""
+    """Add a new story for a person (requires authentication)"""
     data = request.json
     
     # Validate required fields
-    required_fields = ['family_code', 'person_id', 'title', 'author_name', 'theme', 'story_text']
+    required_fields = ['family_id', 'person_id', 'title', 'theme', 'story_text']
     for field in required_fields:
         if field not in data:
             raise HTTP(400, f"Missing required field: {field}")
     
+    family_id = data['family_id']
+    
+    # Check if user has permission to add stories to this family tree
+    if not check_user_permission(auth.user_id, family_id, 'edit'):
+        raise HTTP(403, "You don't have permission to add stories to this family tree")
+    
     # Get family
-    family = get_family_by_code(data['family_code'])
+    family = db.families[family_id]
     if not family:
         raise HTTP(404, "Family not found")
     
     # Verify person exists and belongs to family
     person = db(
         (db.people.id == data['person_id']) & 
-        (db.people.family_id == family.id)
+        (db.people.family_id == family_id)
     ).select().first()
     if not person:
         raise HTTP(404, "Person not found in this family")
@@ -446,10 +589,13 @@ def add_story_endpoint():
         except Exception as e:
             print(f"Error processing photo: {e}")
     
+    # Get author name from authenticated user
+    author_name = get_user_display_name(auth.user_id)
+    
     # Save story
     story_data = {
         'title': data['title'],
-        'author_name': data['author_name'],
+        'author_name': author_name,  # Use authenticated user's name
         'theme': data['theme'],
         'time_period': data.get('time_period', ''),
         'year_occurred': data.get('year_occurred'),
@@ -461,8 +607,9 @@ def add_story_endpoint():
     }
     
     story_id = save_person_story(
-        family.id,
+        family_id,
         data['person_id'],
+        author_user_id=auth.user_id,
         **story_data
     )
     
@@ -474,7 +621,7 @@ def add_story_endpoint():
 
 # Get themes API  
 @action('api/themes')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def get_all_themes():
     """Get all available themes"""
     themes = db().select(
@@ -506,7 +653,7 @@ def get_all_themes():
 
 # Get theme questions API
 @action('api/themes/<theme>/questions')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def get_theme_questions(theme):
     """Get all questions for a specific theme"""
     questions = db(
@@ -526,7 +673,7 @@ def get_theme_questions(theme):
 
 # Get story photo API
 @action('api/story-photo/<story_id>')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def get_story_photo(story_id):
     """Get photo for a story"""
     try:
@@ -537,6 +684,10 @@ def get_story_photo(story_id):
     story = db.stories[story_id_int]
     if not story or not story.photo_data:
         raise HTTP(404, "Photo not found")
+    
+    # Check if user has access to this story's family tree
+    if not check_user_permission(auth.user_id, story.family_id, 'view'):
+        raise HTTP(403, "You don't have permission to view this photo")
     
     # Determine content type
     content_type = 'image/jpeg'
@@ -554,7 +705,7 @@ def get_story_photo(story_id):
 
 # Get person photo API
 @action('api/person-photo/<person_id>')
-@action.uses(db)
+@action.uses(db, session, auth.user)
 def get_person_photo(person_id):
     """Get profile photo for a person"""
     try:
@@ -565,6 +716,10 @@ def get_person_photo(person_id):
     person = db.people[person_id_int]
     if not person or not person.profile_photo:
         raise HTTP(404, "Photo not found")
+    
+    # Check if user has access to this person's family tree
+    if not check_user_permission(auth.user_id, person.family_id, 'view'):
+        raise HTTP(403, "You don't have permission to view this photo")
     
     # Determine content type
     content_type = 'image/jpeg'
@@ -581,11 +736,20 @@ def get_person_photo(person_id):
     return person.profile_photo
 
 # Update tree settings API
-@action('api/tree/<family_code>/settings', method='PUT')
-@action.uses(db)
-def update_tree_settings(family_code):
+@action('api/tree/<family_id>/settings', method='PUT')
+@action.uses(db, session, auth.user)
+def update_tree_settings(family_id):
     """Update tree display settings"""
-    family = get_family_by_code(family_code)
+    try:
+        family_id_int = int(family_id)
+    except ValueError:
+        raise HTTP(400, "Invalid family ID")
+    
+    # Check if user has permission to manage this family tree
+    if not check_user_permission(auth.user_id, family_id_int, 'manage'):
+        raise HTTP(403, "You don't have permission to modify settings for this family tree")
+    
+    family = db.families[family_id_int]
     if not family:
         raise HTTP(404, "Family not found")
     
@@ -594,7 +758,7 @@ def update_tree_settings(family_code):
         raise HTTP(400, "No data provided")
     
     # Get or create tree settings
-    settings = db(db.tree_settings.family_id == family.id).select().first()
+    settings = db(db.tree_settings.family_id == family_id_int).select().first()
     
     update_data = {
         'tree_style': data.get('tree_style', 'classic'),
@@ -602,13 +766,18 @@ def update_tree_settings(family_code):
         'show_photos': data.get('show_photos', True),
         'show_dates': data.get('show_dates', True),
         'show_places': data.get('show_places', False),
-        'root_person_id': data.get('root_person_id')
+        'root_person_id': data.get('root_person_id'),
+        'allow_dual_roots': data.get('allow_dual_roots', False),
+        'primary_root_person_id': data.get('primary_root_person_id'),
+        'secondary_root_person_id': data.get('secondary_root_person_id'),
+        'background_settings': data.get('background_settings'),
+        'connection_line_settings': data.get('connection_line_settings')
     }
     
     if settings:
-        db(db.tree_settings.family_id == family.id).update(**update_data)
+        db(db.tree_settings.family_id == family_id_int).update(**update_data)
     else:
-        update_data['family_id'] = family.id
+        update_data['family_id'] = family_id_int
         db.tree_settings.insert(**update_data)
     
     db.commit()
@@ -618,37 +787,197 @@ def update_tree_settings(family_code):
         message="Tree settings updated successfully"
     )
 
-# Error handler for development
-@action('error')
-def error():
-    """Error page for debugging"""
-    return dict(error_message="An error occurred")
+# ==========================================
+# FAMILY MANAGEMENT APIs (Future Phase 2)
+# ==========================================
 
-# Health check endpoint
+# Get family members API
+@action('api/family/<family_id>/members')
+@action.uses(db, session, auth.user)
+def get_family_members(family_id):
+    """Get all members of a family tree"""
+    try:
+        family_id_int = int(family_id)
+    except ValueError:
+        raise HTTP(400, "Invalid family ID")
+    
+    # Check if user has access to this family tree
+    if not check_user_permission(auth.user_id, family_id_int, 'view'):
+        raise HTTP(403, "You don't have permission to view this family tree")
+    
+    # Get family members with user details
+    query = (
+        (db.family_members.family_id == family_id_int) &
+        (db.family_members.is_active == True) &
+        (db.family_members.user_id == db.auth_user.id)
+    )
+    
+    rows = db(query).select(
+        db.family_members.ALL,
+        db.auth_user.first_name,
+        db.auth_user.last_name,
+        db.auth_user.email,
+        orderby=db.family_members.role | db.auth_user.first_name
+    )
+    
+    members = []
+    for row in rows:
+        member = row.family_members
+        user = row.auth_user
+        
+        members.append({
+            'id': member.id,
+            'user_id': member.user_id,
+            'role': member.role,
+            'user_name': f"{user.first_name} {user.last_name}".strip() or user.email,
+            'email': user.email,
+            'joined_at': member.joined_at.isoformat(),
+            'invited_by': get_user_display_name(member.invited_by) if member.invited_by else None
+        })
+    
+    return dict(members=members)
+
+# Invite family member API (Future Phase 3)
+@action('api/family/<family_id>/invite', method='POST')
+@action.uses(db, session, auth.user)
+def invite_family_member(family_id):
+    """Invite someone to join a family tree"""
+    try:
+        family_id_int = int(family_id)
+    except ValueError:
+        raise HTTP(400, "Invalid family ID")
+    
+    # Check if user has permission to invite others
+    if not check_user_permission(auth.user_id, family_id_int, 'invite'):
+        raise HTTP(403, "You don't have permission to invite others to this family tree")
+    
+    data = request.json
+    if not data or 'email' not in data or 'role' not in data:
+        raise HTTP(400, "Missing required fields: email and role")
+    
+    # TODO: Implement invitation system in Phase 3
+    # For now, return placeholder
+    return dict(
+        success=True,
+        message="Invitation system coming in Phase 3",
+        invitation_token="placeholder"
+    )
+
+# ==========================================
+# LEGACY ENDPOINTS (For backward compatibility)
+# ==========================================
+
+# Keep some legacy endpoints for gradual migration
+@action('create')
+@action.uses(db, session, auth)
+def legacy_create():
+    """Legacy create page - redirect to new flow"""
+    if auth.user:
+        redirect(URL('create-tree'))
+    else:
+        redirect(URL('register'))
+
+@action('join')
+@action.uses(db, session, auth)
+def legacy_join():
+    """Legacy join page - redirect to new flow"""
+    if auth.user:
+        redirect(URL('dashboard'))
+    else:
+        redirect(URL('login'))
+
+# ==========================================
+# UTILITY ENDPOINTS
+# ==========================================
+
+# Health check endpoint (no auth required)
 @action('api/health')
 def health_check():
     """Simple health check endpoint"""
     return dict(
         status="healthy",
-        timestamp=datetime.utcnow().isoformat()
+        timestamp=datetime.utcnow().isoformat(),
+        authenticated=bool(auth.user) if hasattr(auth, 'user') else False,
+        app_version="2.0.0-auth"
     )
 
+# Error handler
+@action('error')
+@action.uses('index.html', db, session, auth)
+def error():
+    """Error page"""
+    return dict(
+        error_message="An error occurred",
+        authenticated=bool(auth.user)
+    )
+
+# API status endpoint
+@action('api/status')
+@action.uses(db, session, auth.user)
+def api_status():
+    """API status for authenticated users"""
+    user_family_count = len(get_user_family_trees(auth.user_id))
+    
+    return dict(
+        status="ok",
+        user_id=auth.user_id,
+        user_name=get_user_display_name(auth.user_id),
+        family_tree_count=user_family_count,
+        permissions_available=["view", "edit", "manage", "invite", "admin"]
+    )
+
+# ==========================================
+# DEVELOPMENT HELPER ENDPOINTS
+# ==========================================
+
+# Debug endpoint for development
+@action('api/debug/user-info')
+@action.uses(db, session, auth.user)
+def debug_user_info():
+    """Debug endpoint to see user info (development only)"""
+    user_trees = get_user_family_trees(auth.user_id)
+    
+    debug_info = {
+        'user_id': auth.user_id,
+        'user_email': auth.user.email,
+        'user_name': get_user_display_name(auth.user_id),
+        'family_trees': user_trees,
+        'session_info': dict(session) if session else None,
+        'auth_info': {
+            'is_logged_in': bool(auth.user),
+            'user_data': dict(auth.user) if auth.user else None
+        }
+    }
+    
+    return debug_info
+
 """
-===== COMPLETE API ENDPOINTS SUMMARY =====
+==========================================
+API ENDPOINTS SUMMARY
+==========================================
+
+AUTHENTICATION:
+- GET /login - Login page
+- GET /register - Registration page  
+- GET /logout - Logout
+- GET /profile - User profile
+- GET /change-password - Change password
+- GET /forgot-password - Password reset
 
 MAIN PAGES:
-- GET / - Landing page or family tree view
-- GET /create - Create family page  
-- GET /join - Join family page
+- GET / - Landing page or redirect to dashboard
+- GET /dashboard - User dashboard
+- GET /tree/<id> - View family tree
+- GET /create-tree - Create new tree page
 
-FAMILY MANAGEMENT:
-- POST /create_family - Create new family tree
-- POST /join_family - Join existing family tree
-- GET /api/tree/<family_code> - Get complete tree data
-- PUT /api/tree/<family_code>/settings - Update tree settings
+FAMILY TREE MANAGEMENT:
+- POST /api/create-family - Create new family
+- GET /api/tree/<id> - Get tree data
+- PUT /api/tree/<id>/settings - Update tree settings
+- GET /api/family/<id>/members - Get family members
 
 PERSON MANAGEMENT:
-- POST /api/person - Add new person
+- POST /api/person - Add person
 - GET /api/person/<id> - Get person details
 - PUT /api/person/<id> - Update person
 - DELETE /api/person/<id> - Delete person
@@ -660,16 +989,22 @@ RELATIONSHIP MANAGEMENT:
 
 STORY MANAGEMENT:
 - GET /api/person/<id>/stories - Get person's stories
-- POST /api/story - Add new story
+- POST /api/story - Add story
 - GET /api/story-photo/<id> - Get story photo
 
 THEME/QUESTION MANAGEMENT:
 - GET /api/themes - Get all themes
 - GET /api/themes/<theme>/questions - Get theme questions
 
+FUTURE ENDPOINTS (Phase 2-3):
+- POST /api/family/<id>/invite - Invite family member
+- GET /api/invitations - Get pending invitations
+- POST /api/invitations/<token>/accept - Accept invitation
+
 UTILITY:
 - GET /api/health - Health check
-- GET /error - Error page
+- GET /api/status - API status (auth required)
+- GET /api/debug/user-info - Debug info (development)
 
-All endpoints include proper error handling, validation, and database safety.
+All endpoints include proper authentication checks and permission validation.
 """

@@ -75,32 +75,33 @@ elif settings.SESSION_TYPE == "database":
 # #######################################################
 # Instantiate the object and actions that handle auth
 # #######################################################
-auth = Auth(session, db, define_tables=False)
-auth.use_username = True
-auth.param.registration_requires_confirmation = settings.VERIFY_EMAIL
-auth.param.registration_requires_approval = settings.REQUIRES_APPROVAL
-auth.param.login_after_registration = settings.LOGIN_AFTER_REGISTRATION
-auth.param.allowed_actions = settings.ALLOWED_ACTIONS
-auth.param.login_expiration_time = 3600
-auth.param.password_complexity = {"entropy": settings.PASSWORD_ENTROPY}
-auth.param.block_previous_password_num = 3
-auth.param.default_login_enabled = settings.DEFAULT_LOGIN_ENABLED
+auth = Auth(session, db, define_tables=True)  # CHANGED: define_tables=True
+auth.use_username = False  # CHANGED: Use email instead of username
+auth.param.registration_requires_confirmation = False  # CHANGED: Skip email verification for now
+auth.param.registration_requires_approval = False
+auth.param.login_after_registration = True  # CHANGED: Auto-login after registration
+auth.param.allowed_actions = ["all"]  # CHANGED: Enable all auth actions
+auth.param.login_expiration_time = 3600 * 24 * 30  # CHANGED: 30 days
+auth.param.password_complexity = {"entropy": 0}  # CHANGED: Simple passwords for development
+auth.param.block_previous_password_num = 0  # CHANGED: Allow password reuse for development
+auth.param.default_login_enabled = True
 auth.define_tables()
 auth.fix_actions()
 
 flash = auth.flash
 
 # #######################################################
-# Configure email sender for auth
+# Configure email sender for auth (Skip for now)
 # #######################################################
-if settings.SMTP_SERVER:
-    auth.sender = Mailer(
-        server=settings.SMTP_SERVER,
-        sender=settings.SMTP_SENDER,
-        login=settings.SMTP_LOGIN,
-        tls=settings.SMTP_TLS,
-        ssl=settings.SMTP_SSL,
-    )
+# Skip SMTP configuration - we'll add this later
+# if settings.SMTP_SERVER:
+#     auth.sender = Mailer(
+#         server=settings.SMTP_SERVER,
+#         sender=settings.SMTP_SENDER,
+#         login=settings.SMTP_LOGIN,
+#         tls=settings.SMTP_TLS,
+#         ssl=settings.SMTP_SSL,
+#     )
 
 # #######################################################
 # Create a table to tag users as group members
@@ -109,90 +110,18 @@ if auth.db:
     groups = Tags(db.auth_user, "groups")
 
 # #######################################################
-# Enable optional auth plugin
+# Enable optional auth plugin - Google OAuth setup for later
 # #######################################################
-if settings.USE_PAM:
-    from py4web.utils.auth_plugins.pam_plugin import PamPlugin
-
-    auth.register_plugin(PamPlugin())
-
-if settings.USE_LDAP:
-    from py4web.utils.auth_plugins.ldap_plugin import LDAPPlugin
-
-    auth.register_plugin(LDAPPlugin(db=db, groups=groups, **settings.LDAP_SETTINGS))
-
-if settings.OAUTH2GOOGLE_CLIENT_ID:
-    from py4web.utils.auth_plugins.oauth2google import OAuth2Google  # TESTED
-
-    auth.register_plugin(
-        OAuth2Google(
-            client_id=settings.OAUTH2GOOGLE_CLIENT_ID,
-            client_secret=settings.OAUTH2GOOGLE_CLIENT_SECRET,
-            callback_url="auth/plugin/oauth2google/callback",
-        )
-    )
-
-if settings.OAUTH2GOOGLE_SCOPED_CREDENTIALS_FILE:
-    from py4web.utils.auth_plugins.oauth2google_scoped import (
-        OAuth2GoogleScoped,
-    )  # TESTED
-
-    auth.register_plugin(
-        OAuth2GoogleScoped(
-            secrets_file=settings.OAUTH2GOOGLE_SCOPED_CREDENTIALS_FILE,
-            scopes=[],  # Put here any scopes you want in addition to login
-            db=db,  # Needed to store credentials in auth_credentials
-        )
-    )
-
-if settings.OAUTH2GITHUB_CLIENT_ID:
-    from py4web.utils.auth_plugins.oauth2github import OAuth2Github  # TESTED
-
-    auth.register_plugin(
-        OAuth2Github(
-            client_id=settings.OAUTH2GITHUB_CLIENT_ID,
-            client_secret=settings.OAUTH2GITHUB_CLIENT_SECRET,
-            callback_url="auth/plugin/oauth2github/callback",
-        )
-    )
-
-if settings.OAUTH2FACEBOOK_CLIENT_ID:
-    from py4web.utils.auth_plugins.oauth2facebook import OAuth2Facebook  # UNTESTED
-
-    auth.register_plugin(
-        OAuth2Facebook(
-            client_id=settings.OAUTH2FACEBOOK_CLIENT_ID,
-            client_secret=settings.OAUTH2FACEBOOK_CLIENT_SECRET,
-            callback_url="auth/plugin/oauth2facebook/callback",
-        )
-    )
-
-if settings.OAUTH2OKTA_CLIENT_ID:
-    from py4web.utils.auth_plugins.oauth2okta import OAuth2Okta  # TESTED
-
-    auth.register_plugin(
-        OAuth2Okta(
-            client_id=settings.OAUTH2OKTA_CLIENT_ID,
-            client_secret=settings.OAUTH2OKTA_CLIENT_SECRET,
-            callback_url="auth/plugin/oauth2okta/callback",
-        )
-    )
-
-# #######################################################
-# Enable optional API token plugins
-# #######################################################
-
-# curl -H "Authorization: Bearer {token}"
-# create tokens in db.auth_simple_token
-#
-# simple_token_plugin = SimpleTokenPlugin(auth)
-# auth.token_plugins.append(simple_token_plugin)
-
-# curl -H "Authorization: Bearer {token}"
-# create tokens with JwtTokenPlugin(auth).make(user, expiration)
-#
-# jwt_token_plugin = JwtTokenPlugin(auth)
-# auth.token_plugins.append(jwt_token_plugin)
+# TODO: Add Google OAuth when we get credentials
+# if settings.OAUTH2GOOGLE_CLIENT_ID:
+#     from py4web.utils.auth_plugins.oauth2google import OAuth2Google
+#     auth.register_plugin(
+#         OAuth2Google(
+#             client_id=settings.OAUTH2GOOGLE_CLIENT_ID,
+#             client_secret=settings.OAUTH2GOOGLE_CLIENT_SECRET,
+#             callback_url="auth/plugin/oauth2google/callback",
+#         )
+#     )
 
 # #######################################################
 # Define a convenience action to allow users to download

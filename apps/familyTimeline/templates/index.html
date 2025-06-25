@@ -3,129 +3,178 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>[[=family.family_name if family else "Family Memory Timeline"]]</title>
-    <link rel="stylesheet" href="[[=URL('static', 'css/style.css')]]">
+    <title>Family Tree - Preserve Your Family's Legacy</title>
+    <link rel="stylesheet" href="[[=URL('static', 'css/tree-style.css')]]">
 </head>
 <body>
-    [[if not family:]]
-    <!-- Landing Page -->
+    <!-- Landing Page for Non-Authenticated Users -->
     <div class="landing-page">
-        <div class="welcome-card">
-            <h1>Family Memory Timeline</h1>
-            <p>Create and share your family's stories across the years. Build a beautiful timeline of memories that future generations will treasure.</p>
-            <div class="action-buttons">
-                <a href="[[=URL('create')]]" class="btn">Create Timeline</a>
-                <a href="[[=URL('join')]]" class="btn" style="background: #666;">Join Family</a>
+        <div class="welcome-card" style="max-width: 800px;">
+            <div style="text-align: center; margin-bottom: 40px;">
+                <span style="font-size: 64px; display: block; margin-bottom: 20px;">🌳</span>
+                <h1 style="font-size: 48px; color: #2E7D32; margin-bottom: 20px;">Family Tree</h1>
+                <p style="font-size: 20px; color: #666; line-height: 1.6; margin-bottom: 40px;">
+                    Create and share your family's stories across the years. Build a beautiful timeline of memories that future generations will treasure.
+                </p>
             </div>
-        </div>
-    </div>
-    [[else:]]
-    <!-- Timeline Interface -->
-    <div id="header">
-        <button id="addMemoryBtn">+ Add Memory</button>
-        <h1 id="timelineTitle">[[=family.family_name]] Timeline (1930 - 2025)</h1>
-        <div id="controls">
-            <button class="control-btn" id="zoomOut">-</button>
-            <input type="range" id="zoomSlider" min="0.5" max="2" step="0.1" value="1">
-            <button class="control-btn" id="zoomIn">+</button>
-            <div style="margin-left: 20px; color: #8B4513; font-weight: bold;">
-                Code: [[=family.access_code]]
+
+            <!-- Feature Highlights -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 30px; margin: 40px 0;">
+                <div style="text-align: center; padding: 20px; background: rgba(46,125,50,0.05); border-radius: 15px;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">👨‍👩‍👧‍👦</div>
+                    <h3 style="color: #2E7D32; margin-bottom: 10px;">Family Collaboration</h3>
+                    <p style="color: #666; font-size: 14px;">Invite family members to contribute stories, photos, and memories together.</p>
+                </div>
+                
+                <div style="text-align: center; padding: 20px; background: rgba(46,125,50,0.05); border-radius: 15px;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">📖</div>
+                    <h3 style="color: #2E7D32; margin-bottom: 10px;">Guided Storytelling</h3>
+                    <p style="color: #666; font-size: 14px;">Themed questions help capture meaningful stories about each family member.</p>
+                </div>
+                
+                <div style="text-align: center; padding: 20px; background: rgba(46,125,50,0.05); border-radius: 15px;">
+                    <div style="font-size: 40px; margin-bottom: 15px;">🎨</div>
+                    <h3 style="color: #2E7D32; margin-bottom: 10px;">Beautiful Design</h3>
+                    <p style="color: #666; font-size: 14px;">Interactive tree visualization with photos, custom colors, and elegant styling.</p>
+                </div>
             </div>
-        </div>
-    </div>
 
-    <div id="timelineContainer">
-        <div id="timeline">
-            <div id="timelineLine"></div>
-        </div>
-    </div>
+            <!-- Call to Action -->
+            <div style="text-align: center; margin-top: 50px;">
+                <div style="background: #f0f8ff; padding: 30px; border-radius: 15px; margin-bottom: 30px; border-left: 4px solid #2E7D32;">
+                    <h3 style="color: #2E7D32; margin-bottom: 15px;">Ready to Preserve Your Family's Legacy?</h3>
+                    <p style="color: #666; margin-bottom: 25px;">
+                        Join thousands of families already sharing their stories and building digital legacies for future generations.
+                    </p>
+                    
+                    <div class="action-buttons" style="display: flex; gap: 20px; justify-content: center; flex-wrap: wrap;">
+                        <a href="[[=URL('register')]]" class="btn primary" style="text-decoration: none; min-width: 200px;">
+                            🌱 Create Free Account
+                        </a>
+                        <a href="[[=URL('login')]]" class="btn secondary" style="text-decoration: none; min-width: 200px;">
+                            🏠 Sign In
+                        </a>
+                    </div>
+                    
+                    <div style="margin-top: 20px; font-size: 14px; color: #666;">
+                        No credit card required • Free forever • Invite unlimited family members
+                    </div>
+                </div>
+            </div>
 
-    <!-- Add Memory Modal -->
-    <div id="addMemoryModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>Add a Memory</h2>
-            <form id="addMemoryForm">
-                <div class="form-group">
-                    <label for="memoryYear">Year:</label>
-                    <input type="number" id="memoryYear" min="1930" max="2025" required>
+            <!-- How It Works -->
+            <div style="margin-top: 50px;">
+                <h3 style="color: #2E7D32; text-align: center; margin-bottom: 30px; font-size: 28px;">How It Works</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="background: #2E7D32; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin: 0 auto 15px;">1</div>
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">Create Account</h4>
+                        <p style="color: #666; font-size: 14px;">Sign up with email or Google account in seconds</p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="background: #2E7D32; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin: 0 auto 15px;">2</div>
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">Start Your Tree</h4>
+                        <p style="color: #666; font-size: 14px;">Create your family tree and add the first family members</p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="background: #2E7D32; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin: 0 auto 15px;">3</div>
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">Invite Family</h4>
+                        <p style="color: #666; font-size: 14px;">Send invitations to family members to join and contribute</p>
+                    </div>
+                    
+                    <div style="text-align: center; padding: 20px;">
+                        <div style="background: #2E7D32; color: white; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; margin: 0 auto 15px;">4</div>
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">Share Stories</h4>
+                        <p style="color: #666; font-size: 14px;">Add photos, stories, and memories to build your family legacy</p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="memoryTitle">Title:</label>
-                    <input type="text" id="memoryTitle" placeholder="Give your memory a title..." required>
-                </div>
-                <div class="form-group">
-                    <label for="authorName">Your Name:</label>
-                    <input type="text" id="authorName" required>
-                </div>
-                <div class="form-group">
-                    <label for="storyTheme">Choose a Theme:</label>
-                    <select id="storyTheme" required>
-                        <option value="">Select a theme...</option>
-                    </select>
-                </div>
-                <div class="form-group" id="themeQuestionsGroup" style="display: none;">
-                    <label>Theme Questions (select the ones you'd like to answer):</label>
-                    <div id="themeQuestions" class="theme-questions"></div>
-                </div>
-                <div class="form-group">
-                    <label for="storyText">Your Memory:</label>
-                    <textarea id="storyText" placeholder="Tell your story here..." required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="photoUpload">Add a Photo (optional):</label>
-                    <input type="file" id="photoUpload" accept="image/*">
-                </div>
-                <button type="submit" class="btn">Save Memory</button>
-            </form>
-        </div>
-    </div>
+            </div>
 
-    <!-- View Year Modal -->
-    <div id="viewYearModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2 id="modalYearTitle">Memories from 1950</h2>
-            <div id="yearStories"></div>
-            <hr style="margin: 30px 0;">
-            <h3>Add a New Memory for This Year</h3>
-            <form id="yearMemoryForm">
-                <div class="form-group">
-                    <label for="yearMemoryTitle">Title:</label>
-                    <input type="text" id="yearMemoryTitle" placeholder="Give your memory a title..." required>
+            <!-- Sample Features -->
+            <div style="margin-top: 50px; padding-top: 30px; border-top: 2px solid rgba(46,125,50,0.1);">
+                <h3 style="color: #2E7D32; text-align: center; margin-bottom: 30px; font-size: 24px;">Everything You Need to Preserve Family History</h3>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 25px;">
+                    <div style="background: rgba(255,255,255,0.7); padding: 20px; border-radius: 12px; border-left: 4px solid #4CAF50;">
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">🎯 Guided Questions</h4>
+                        <p style="color: #666; font-size: 14px;">Choose from 9 themed categories with thoughtful questions that help capture meaningful stories about each family member.</p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.7); padding: 20px; border-radius: 12px; border-left: 4px solid #FF9800;">
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">📸 Photo Memories</h4>
+                        <p style="color: #666; font-size: 14px;">Upload and share family photos with each story. Every picture tells part of your family's unique journey.</p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.7); padding: 20px; border-radius: 12px; border-left: 4px solid #9C27B0;">
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">🎨 Custom Design</h4>
+                        <p style="color: #666; font-size: 14px;">Personalize your family tree with custom colors, shapes, and layouts. Make each person's node reflect their personality.</p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.7); padding: 20px; border-radius: 12px; border-left: 4px solid #2196F3;">
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">👥 Role Management</h4>
+                        <p style="color: #666; font-size: 14px;">Control who can view, edit, or manage your family tree with flexible permission levels for different family members.</p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.7); padding: 20px; border-radius: 12px; border-left: 4px solid #607D8B;">
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">🌍 Always Accessible</h4>
+                        <p style="color: #666; font-size: 14px;">Access your family tree from any device, anywhere. Your family's stories are always just a click away.</p>
+                    </div>
+                    
+                    <div style="background: rgba(255,255,255,0.7); padding: 20px; border-radius: 12px; border-left: 4px solid #795548;">
+                        <h4 style="color: #2E7D32; margin-bottom: 10px;">🔒 Private & Secure</h4>
+                        <p style="color: #666; font-size: 14px;">Your family's stories are private by default. Only invited family members can access your shared memories.</p>
+                    </div>
                 </div>
-                <div class="form-group">
-                    <label for="yearAuthorName">Your Name:</label>
-                    <input type="text" id="yearAuthorName" required>
+            </div>
+
+            <!-- Final CTA -->
+            <div style="text-align: center; margin-top: 50px; padding: 40px; background: linear-gradient(45deg, rgba(46,125,50,0.1), rgba(76,175,80,0.1)); border-radius: 20px;">
+                <h3 style="color: #2E7D32; margin-bottom: 15px; font-size: 28px;">Start Preserving Your Family's Story Today</h3>
+                <p style="color: #666; margin-bottom: 30px; font-size: 18px;">
+                    Every family has stories worth preserving. Don't let them be forgotten.
+                </p>
+                
+                <a href="[[=URL('register')]]" class="btn primary" style="text-decoration: none; font-size: 20px; padding: 20px 40px;">
+                    🌱 Create Your Family Tree - Free
+                </a>
+                
+                <div style="margin-top: 20px; font-size: 14px; color: #666;">
+                    Already have an account? <a href="[[=URL('login')]]" style="color: #2E7D32; font-weight: bold;">Sign in here</a>
                 </div>
-                <div class="form-group">
-                    <label for="yearStoryTheme">Choose a Theme:</label>
-                    <select id="yearStoryTheme" required>
-                        <option value="">Select a theme...</option>
-                    </select>
-                </div>
-                <div class="form-group" id="yearThemeQuestionsGroup" style="display: none;">
-                    <label>Theme Questions (select the ones you'd like to answer):</label>
-                    <div id="yearThemeQuestions" class="theme-questions"></div>
-                </div>
-                <div class="form-group">
-                    <label for="yearStoryText">Your Memory:</label>
-                    <textarea id="yearStoryText" placeholder="Tell your story here..." required></textarea>
-                </div>
-                <div class="form-group">
-                    <label for="yearPhotoUpload">Add a Photo (optional):</label>
-                    <input type="file" id="yearPhotoUpload" accept="image/*">
-                </div>
-                <button type="submit" class="btn">Save Memory</button>
-            </form>
+            </div>
         </div>
     </div>
 
     <script>
-        // Pass family code to JavaScript
-        window.familyCode = '[[=family_code]]';
+        // Add some subtle animations
+        document.addEventListener('DOMContentLoaded', function() {
+            // Animate feature cards on scroll
+            const observerOptions = {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            };
+
+            const observer = new IntersectionObserver(function(entries) {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.style.opacity = '1';
+                        entry.target.style.transform = 'translateY(0)';
+                    }
+                });
+            }, observerOptions);
+
+            // Apply animation to all feature cards
+            const cards = document.querySelectorAll('[style*="background: rgba(255,255,255,0.7)"]');
+            cards.forEach(card => {
+                card.style.opacity = '0';
+                card.style.transform = 'translateY(20px)';
+                card.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+                observer.observe(card);
+            });
+        });
     </script>
-    <script src="[[=URL('static', 'js/timeline.js')]]"></script>
-    [[pass]]
 </body>
 </html>

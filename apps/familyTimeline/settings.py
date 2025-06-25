@@ -11,7 +11,7 @@ import os
 from py4web.core import required_folder
 
 # mode (default or development)
-MODE = os.environ.get("PY4WEB_MODE")
+MODE = os.environ.get("PY4WEB_MODE", "development")
 
 # db settings
 APP_FOLDER = os.path.dirname(__file__)
@@ -32,17 +32,17 @@ STATIC_FOLDER = required_folder(APP_FOLDER, "static")
 UPLOAD_FOLDER = required_folder(APP_FOLDER, "uploads")
 
 # send verification email on registration
-VERIFY_EMAIL = MODE != "development"
+VERIFY_EMAIL = False  # Skip email verification for development
 
 # complexity of the password 0: no constraints, 50: safe!
-PASSWORD_ENTROPY = 0 
+PASSWORD_ENTROPY = 0  # Simple passwords for development
 
 # account requires to be approved ?
 REQUIRES_APPROVAL = False
 
 # auto login after registration
 # requires False VERIFY_EMAIL & REQUIRES_APPROVAL
-LOGIN_AFTER_REGISTRATION = False
+LOGIN_AFTER_REGISTRATION = True
 
 # ALLOWED_ACTIONS in API / default Forms:
 # ["all"]
@@ -52,7 +52,7 @@ LOGIN_AFTER_REGISTRATION = False
 # Note: if you add "login", add also "logout"
 ALLOWED_ACTIONS = ["all"]
 
-# email settings
+# email settings (skip for development)
 SMTP_SSL = False
 SMTP_SERVER = None
 SMTP_SENDER = "you@example.com"
@@ -61,7 +61,7 @@ SMTP_TLS = False
 
 # session settings
 SESSION_TYPE = "cookies"
-SESSION_SECRET_KEY = None  # or replace with your own secret
+SESSION_SECRET_KEY = "your-secret-key-here-change-in-production"  # Set a default for development
 MEMCACHE_CLIENTS = ["127.0.0.1:11211"]
 REDIS_SERVER = "localhost:6379"
 
@@ -74,7 +74,7 @@ LOGGERS = [
 DEFAULT_LOGIN_ENABLED = True
 
 # single sign on Google (will be used if provided)
-OAUTH2GOOGLE_CLIENT_ID = None
+OAUTH2GOOGLE_CLIENT_ID = None  # TODO: Add when we get Google OAuth credentials
 OAUTH2GOOGLE_CLIENT_SECRET = None
 
 # Single sign on Google, with stored credentials for scopes (will be used if provided).
@@ -116,6 +116,16 @@ SCHEDULER_MAX_CONCURRENT_RUNS = 1
 # Celery settings (alternative to the build-in scheduler)
 USE_CELERY = False
 CELERY_BROKER = "redis://localhost:6379/0"
+
+# Family Tree specific settings
+FAMILY_TREE_SETTINGS = {
+    'MAX_PHOTO_SIZE': 5 * 1024 * 1024,  # 5MB max photo size
+    'ALLOWED_PHOTO_TYPES': ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    'INVITATION_EXPIRY_DAYS': 7,
+    'MAX_FAMILY_MEMBERS': 1000,  # Reasonable limit
+    'DEFAULT_TREE_STYLE': 'classic',
+    'DEFAULT_COLOR_SCHEME': 'earth'
+}
 
 # try import private settings
 try:
