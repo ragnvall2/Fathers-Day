@@ -79,6 +79,8 @@ db.define_table(
     Field('last_edited_by_user_id', 'reference auth_user'),
     Field('created_at', 'datetime', default=datetime.utcnow),
     Field('updated_at', 'datetime', default=datetime.utcnow, update=datetime.utcnow),
+    Field('grid_row', 'integer'),
+    Field('grid_col', 'integer'),
     format='%(first_name)s %(last_name)s'
 )
 
@@ -353,7 +355,9 @@ def get_family_tree_data(family_id):
             'tree_position_y': person.tree_position_y,
             'node_color': person.node_color or 'green',
             'node_shape': person.node_shape or 'circle',
-            'created_by': get_user_display_name(person.created_by_user_id) if person.created_by_user_id else None
+            'created_by': get_user_display_name(person.created_by_user_id) if person.created_by_user_id else None,
+            'grid_row': person.grid_row,
+            'grid_col': person.grid_col
         })
     
     relationships_data = []

@@ -292,7 +292,9 @@ def add_person_endpoint():
             'bio_summary': data.get('bio_summary', ''),
             'generation_level': data.get('generation_level', 0),
             'node_color': data.get('node_color', 'green'),
-            'node_shape': data.get('node_shape', 'circle')
+            'node_shape': data.get('node_shape', 'circle'),
+            'grid_row': data.get('grid_row'),       
+            'grid_col': data.get('grid_col')
         }
         
         # Handle photo if present

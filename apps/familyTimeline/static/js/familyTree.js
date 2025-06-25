@@ -314,6 +314,11 @@ class SimpleFamilyTree {
         this.scale = 1;
         this.panX = 0;
         this.panY = 0;
+        this.isEditMode = false;
+        this.gridRows = 6;        // Default 6 generations
+        this.gridCols = 12;       // Default 12 positions per generation
+        this.gridCellSize = 100;  // Size of each grid cell
+        this.isOwner = false;     // Will be set based on user permissions
 
         this.nodeCustomization = new NodeCustomization(this);
         
@@ -325,12 +330,153 @@ class SimpleFamilyTree {
     
     async init() {
         console.log('=== DEBUG: init() called ===');
-        console.log('this.familyCode at start of init:', this.familyCode);
         
         await this.loadTreeData();
+        await this.checkOwnerPermissions(); // NEW: Check permissions
         this.createTreeContainer();
         this.setupEventListeners();
         this.renderTree();
+        
+        // NEW: Show edit button if owner
+        if (this.isOwner) {
+            const editBtn = document.getElementById('editTreeBtn');
+            if (editBtn) {
+                editBtn.style.display = 'block';
+            }
+        }
+    }
+    async checkOwnerPermissions() {
+        // Check if current user is owner of this family tree
+        try {
+            const response = await fetch(`/familyTimeline/api/tree/${this.familyCode}`);
+            const data = await response.json();
+            
+            // You'll need to add owner_id to your tree API response
+            // For now, we'll assume user is owner if they can access the tree
+            this.isOwner = true; // TODO: Replace with actual owner check
+            
+            console.log('Owner permissions:', this.isOwner);
+        } catch (error) {
+            console.error('Error checking permissions:', error);
+            this.isOwner = false;
+        }
+    }
+
+    toggleEditMode() {
+        if (!this.isOwner) {
+            alert('Only the family tree owner can edit the layout.');
+            return;
+        }
+        
+        this.isEditMode = !this.isEditMode;
+        console.log('Edit mode:', this.isEditMode);
+        
+        // Update UI
+        this.updateEditModeUI();
+        this.renderTree();
+    }
+
+    updateEditModeUI() {
+        const editButton = document.getElementById('editTreeBtn');
+        const gridControls = document.getElementById('gridControls');
+        
+        if (editButton) {
+            editButton.textContent = this.isEditMode ? '👁️ View Mode' : '✏️ Edit Tree';
+            editButton.style.background = this.isEditMode ? '#FF9800' : '#4CAF50';
+        }
+        
+        if (gridControls) {
+            gridControls.style.display = this.isEditMode ? 'flex' : 'none';
+        }
+        
+        // Update tree container class for styling
+        const container = document.getElementById(this.containerId);
+        if (container) {
+            container.classList.toggle('edit-mode', this.isEditMode);
+        }
+    }
+
+    adjustGridSize(rows, cols) {
+        this.gridRows = Math.max(3, Math.min(12, rows)); // Limit between 3-12 rows
+        this.gridCols = Math.max(6, Math.min(20, cols)); // Limit between 6-20 cols
+        
+        console.log(`Grid resized to: ${this.gridRows} rows x ${this.gridCols} cols`);
+        
+        // Update grid controls display
+        document.getElementById('gridRowsValue').textContent = this.gridRows;
+        document.getElementById('gridColsValue').textContent = this.gridCols;
+        
+        // Re-render if in edit mode
+        if (this.isEditMode) {
+            this.renderTree();
+        }
+    }
+
+    createGridOverlay() {
+        if (!this.isEditMode) return '';
+        
+        const gridWidth = this.gridCols * this.gridCellSize;
+        const gridHeight = this.gridRows * this.gridCellSize;
+        const startX = 100; // Offset from left
+        const startY = 100; // Offset from top
+        
+        let gridHTML = '';
+        
+        // Create grid background
+        gridHTML += `<rect x="${startX}" y="${startY}" width="${gridWidth}" height="${gridHeight}" 
+                     fill="rgba(255,255,255,0.1)" stroke="rgba(255,255,255,0.3)" stroke-width="2" 
+                     stroke-dasharray="5,5" rx="10"/>`;
+        
+        // Create grid dots and clickable areas
+        for (let row = 0; row < this.gridRows; row++) {
+            for (let col = 0; col < this.gridCols; col++) {
+                const x = startX + (col * this.gridCellSize) + (this.gridCellSize / 2);
+                const y = startY + (row * this.gridCellSize) + (this.gridCellSize / 2);
+                
+                // Check if there's already a person at this position
+                const isOccupied = this.isGridPositionOccupied(row, col);
+                
+                if (!isOccupied) {
+                    // Empty grid spot - show clickable dot
+                    gridHTML += `<circle cx="${x}" cy="${y}" r="8" 
+                                 fill="rgba(46,125,50,0.4)" stroke="#2E7D32" stroke-width="2"
+                                 class="grid-spot" data-row="${row}" data-col="${col}"
+                                 style="cursor: pointer; opacity: 0.6;"/>`;
+                    
+                    // Invisible larger click area
+                    gridHTML += `<circle cx="${x}" cy="${y}" r="25" 
+                                 fill="transparent" class="grid-click-area" 
+                                 data-row="${row}" data-col="${col}" style="cursor: pointer;"/>`;
+                }
+            }
+        }
+        
+        // Add generation labels
+        for (let row = 0; row < this.gridRows; row++) {
+            const y = startY + (row * this.gridCellSize) + (this.gridCellSize / 2);
+            gridHTML += `<text x="${startX - 30}" y="${y + 5}" 
+                         font-family="Arial, sans-serif" font-size="12" font-weight="bold" 
+                         fill="#2E7D32" text-anchor="middle">G${this.gridRows - row}</text>`;
+        }
+        
+        return gridHTML;
+    }
+
+    isGridPositionOccupied(row, col) {
+        // Check if any person is positioned at this grid location
+        return this.people.some(person => 
+            person.gridRow === row && person.gridCol === col
+        );
+    }
+
+    handleGridClick(row, col) {
+        console.log(`Grid clicked: Row ${row}, Col ${col}`);
+        
+        // Store the grid position for the new person
+        this.pendingGridPosition = { row, col };
+        
+        // Open add person modal
+        this.openAddPersonModal('grid');
     }
     
     async loadTreeData() {
@@ -758,8 +904,7 @@ class SimpleFamilyTree {
         const container = document.getElementById(this.containerId);
         if (!container) return;
         
-        // Updated context menu to include "View Stories"
-        // Update this part of your createTreeContainer function:
+        // Updated container with edit mode controls
         container.innerHTML = `
             <div class="simple-tree-canvas">
                 <svg id="familyTreeSVG" width="100%" height="100%" viewBox="0 0 1400 1000">
@@ -774,21 +919,45 @@ class SimpleFamilyTree {
                         </filter>
                     </defs>
                     
+                    <g id="gridOverlay"></g>
                     <g id="connections"></g>
                     <g id="peopleNodes"></g>
                 </svg>
             </div>
             
             <div class="tree-controls">
+                <!-- Existing zoom controls -->
                 <div class="zoom-controls">
                     <button id="zoomOut" class="control-btn">-</button>
                     <span id="zoomLevel">100%</span>
                     <button id="zoomIn" class="control-btn">+</button>
                 </div>
+                
+                <!-- NEW: Edit mode button (only show if owner) -->
+                <button id="editTreeBtn" class="control-btn" style="display: none;">✏️ Edit Tree</button>
+                
+                <!-- NEW: Grid size controls (only show in edit mode) -->
+                <div id="gridControls" class="grid-controls" style="display: none;">
+                    <div class="grid-control-group">
+                        <label>Rows: <span id="gridRowsValue">${this.gridRows}</span></label>
+                        <div>
+                            <button id="gridRowsDown" class="grid-btn">-</button>
+                            <button id="gridRowsUp" class="grid-btn">+</button>
+                        </div>
+                    </div>
+                    <div class="grid-control-group">
+                        <label>Cols: <span id="gridColsValue">${this.gridCols}</span></label>
+                        <div>
+                            <button id="gridColsDown" class="grid-btn">-</button>
+                            <button id="gridColsUp" class="grid-btn">+</button>
+                        </div>
+                    </div>
+                </div>
+                
                 <button id="centerTreeBtn" class="control-btn">🎯 Center Tree</button>
             </div>
             
-            <!-- Context Menu -->
+            <!-- Context Menu (updated for edit mode) -->
             <div id="contextMenu" class="context-menu" style="display: none;">
                 <div class="context-item" id="viewStories">📖 View Stories</div>
                 <div class="context-item" id="addStory">✍️ Add Story</div>
@@ -849,6 +1018,14 @@ class SimpleFamilyTree {
             this.updateZoomDisplay();
         });
         
+        svg.addEventListener('click', (e) => {
+            if (this.isEditMode && e.target.classList.contains('grid-click-area')) {
+                const row = parseInt(e.target.getAttribute('data-row'));
+                const col = parseInt(e.target.getAttribute('data-col'));
+                this.handleGridClick(row, col);
+            }
+        });
+
         // Hide context menu on click outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.context-menu') && !e.target.closest('.person-node')) {
@@ -863,11 +1040,35 @@ class SimpleFamilyTree {
             this.updateTreeTransform();
             this.updateZoomDisplay();
         });
+
+        
         
         document.getElementById('zoomOut')?.addEventListener('click', () => {
             this.scale = Math.max(this.scale / 1.2, 0.3);
             this.updateTreeTransform();
             this.updateZoomDisplay();
+        });
+
+        // NEW: Edit mode button
+        document.getElementById('editTreeBtn')?.addEventListener('click', () => {
+            this.toggleEditMode();
+        });
+        
+        // NEW: Grid size controls
+        document.getElementById('gridRowsUp')?.addEventListener('click', () => {
+            this.adjustGridSize(this.gridRows + 1, this.gridCols);
+        });
+        
+        document.getElementById('gridRowsDown')?.addEventListener('click', () => {
+            this.adjustGridSize(this.gridRows - 1, this.gridCols);
+        });
+        
+        document.getElementById('gridColsUp')?.addEventListener('click', () => {
+            this.adjustGridSize(this.gridRows, this.gridCols + 1);
+        });
+        
+        document.getElementById('gridColsDown')?.addEventListener('click', () => {
+            this.adjustGridSize(this.gridRows, this.gridCols - 1);
         });
         
         document.getElementById('centerTreeBtn')?.addEventListener('click', () => {
@@ -1238,9 +1439,22 @@ class SimpleFamilyTree {
     
     renderTree() {
         this.clearTree();
+        
+        // NEW: Render grid overlay if in edit mode
+        if (this.isEditMode) {
+            this.renderGridOverlay();
+        }
+        
         this.calculatePositions();
         this.renderConnections();
         this.renderPeople();
+    }
+
+    renderGridOverlay() {
+        const gridContainer = document.getElementById('gridOverlay');
+        if (!gridContainer) return;
+        
+        gridContainer.innerHTML = this.createGridOverlay();
     }
     
     clearTree() {
@@ -1899,7 +2113,7 @@ class SimpleFamilyTree {
             });
             
             const storyData = {
-                family_code: this.familyCode,
+                family_id: parseInt(this.familyCode),
                 person_id: parseInt(formData.get('person_id')),
                 title: formData.get('title'),
                 author_name: formData.get('author_name'),
