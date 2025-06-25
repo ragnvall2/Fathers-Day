@@ -169,28 +169,59 @@
             background-color: rgba(46,125,50,0.1);
         }
 
-        .back-to-home {
-            text-align: center;
-            margin-top: 25px;
-            padding-top: 15px;
-            border-top: 1px solid rgba(46,125,50,0.1);
+        /* Form Group Styles */
+        .form-group {
+            margin-bottom: 20px;
         }
 
-        .back-to-home a {
-            color: #2E7D32;
-            text-decoration: none;
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
             font-weight: bold;
-            font-size: 14px;
-            display: inline-flex;
-            align-items: center;
-            gap: 5px;
+            color: #2E7D32;
+            font-size: 16px;
+            font-family: 'Georgia', serif;
         }
 
-        .back-to-home a:hover {
-            text-decoration: underline;
+        .form-group input {
+            width: 100%;
+            padding: 15px 18px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: 'Georgia', serif;
+            transition: all 0.3s ease;
+            background: rgba(255,255,255,0.9);
+            box-sizing: border-box;
         }
 
-        @media (max-width: 480px) {
+        .form-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+            box-shadow: 0 0 0 3px rgba(76,175,80,0.1);
+            background: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(45deg, #4CAF50, #2E7D32);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+            box-shadow: 0 4px 15px rgba(76,175,80,0.3);
+            font-family: 'Georgia', serif;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76,175,80,0.4);
+        }
             .auth-container {
                 padding: 30px 20px;
                 margin: 10px;
@@ -203,7 +234,6 @@
             .brand-header .tree-icon {
                 font-size: 40px;
             }
-        }
     </style>
 </head>
 <body>
@@ -277,8 +307,140 @@
         </div>
         [[pass]]
 
-        <!-- py4web Form (this is where the magic happens) -->
-        [[=form]]
+        <!-- Custom Form Rendering (No auto-generated links!) -->
+        [[# Display form errors if any]]
+        [[if hasattr(form, 'errors') and form.errors:]]
+            [[for field_name, error in form.errors.items():]]
+            <div class="alert error">
+                <strong>[[=field_name.replace('_', ' ').title()]]:</strong> [[=error]]
+            </div>
+            [[pass]]
+        [[pass]]
+
+        [[# Custom form rendering based on page type]]
+        [[=form.custom.begin]]
+        
+        [[if page_type == 'Sign In':]]
+            <!-- Login Form -->
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" 
+                       value="[[=form.vars.get('email', '') if hasattr(form, 'vars') else '']]" 
+                       required placeholder="Enter your email">
+            </div>
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password" 
+                       required placeholder="Enter your password">
+            </div>
+            
+            <input type="submit" value="Sign In" class="submit-btn">
+            
+        [[elif page_type == 'Create Account':]]
+            <!-- Registration Form -->
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" name="first_name" id="first_name" 
+                       value="[[=form.vars.get('first_name', '') if hasattr(form, 'vars') else '']]" 
+                       required placeholder="Enter your first name">
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" name="last_name" id="last_name" 
+                       value="[[=form.vars.get('last_name', '') if hasattr(form, 'vars') else '']]" 
+                       placeholder="Enter your last name">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" 
+                       value="[[=form.vars.get('email', '') if hasattr(form, 'vars') else '']]" 
+                       required placeholder="Enter your email">
+            </div>
+            
+            <!-- Hidden username field (set to email) -->
+            <input type="hidden" name="username" id="username" value="">
+            
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" name="password" id="password" 
+                       required placeholder="Create a password">
+            </div>
+            
+            <div class="form-group">
+                <label for="password_again">Confirm Password</label>
+                <input type="password" name="password_again" id="password_again" 
+                       required placeholder="Confirm your password">
+            </div>
+            
+            <input type="submit" value="Create Account" class="submit-btn">
+            
+        [[elif page_type == 'Reset Password':]]
+            <!-- Password Reset Form -->
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" 
+                       value="[[=form.vars.get('email', '') if hasattr(form, 'vars') else '']]" 
+                       required placeholder="Enter your email">
+            </div>
+            
+            <input type="submit" value="Send Reset Link" class="submit-btn">
+            
+        [[elif page_type == 'Change Password':]]
+            <!-- Change Password Form -->
+            <div class="form-group">
+                <label for="old_password">Current Password</label>
+                <input type="password" name="old_password" id="old_password" 
+                       required placeholder="Enter current password">
+            </div>
+            
+            <div class="form-group">
+                <label for="new_password">New Password</label>
+                <input type="password" name="new_password" id="new_password" 
+                       required placeholder="Enter new password">
+            </div>
+            
+            <div class="form-group">
+                <label for="new_password2">Confirm New Password</label>
+                <input type="password" name="new_password2" id="new_password2" 
+                       required placeholder="Confirm new password">
+            </div>
+            
+            <input type="submit" value="Change Password" class="submit-btn">
+            
+        [[elif page_type == 'Profile Settings':]]
+            <!-- Profile Form -->
+            <div class="form-group">
+                <label for="first_name">First Name</label>
+                <input type="text" name="first_name" id="first_name" 
+                       value="[[=form.vars.get('first_name', '') if hasattr(form, 'vars') else '']]" 
+                       required placeholder="Enter your first name">
+            </div>
+            
+            <div class="form-group">
+                <label for="last_name">Last Name</label>
+                <input type="text" name="last_name" id="last_name" 
+                       value="[[=form.vars.get('last_name', '') if hasattr(form, 'vars') else '']]" 
+                       placeholder="Enter your last name">
+            </div>
+            
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" name="email" id="email" 
+                       value="[[=form.vars.get('email', '') if hasattr(form, 'vars') else '']]" 
+                       required placeholder="Enter your email">
+            </div>
+            
+            <input type="submit" value="Update Profile" class="submit-btn">
+            
+        [[else:]]
+            <!-- Fallback: Use original form if page type not recognized -->
+            [[=form]]
+        [[pass]]
+        
+        [[=form.custom.end]]
 
         <!-- Auth Navigation Links -->
         <div class="auth-links">
@@ -291,118 +453,26 @@
             <a href="/familyTimeline/login">← Back to Sign In</a>
             [[pass]]
         </div>
-
-        <!-- Back to Home -->
-        <div class="back-to-home">
-            <a href="[[=URL('index')]]">
-                ← Back to Family Tree
-            </a>
-        </div>
     </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // Style all py4web form elements to match our design
+            // Sync email to username field for registration
+            const emailField = document.getElementById('email');
+            const usernameField = document.getElementById('username');
             
-            // Style form container
-            const forms = document.querySelectorAll('form');
-            forms.forEach(form => {
-                form.style.background = 'none';
-                form.style.border = 'none';
-                form.style.padding = '0';
-                form.style.margin = '0';
-                form.style.boxShadow = 'none';
-            });
-
-            // Style input fields
-            const inputs = document.querySelectorAll('input[type="email"], input[type="password"], input[type="text"]');
-            inputs.forEach(input => {
-                input.style.width = '100%';
-                input.style.padding = '15px 18px';
-                input.style.border = '2px solid #ddd';
-                input.style.borderRadius = '10px';
-                input.style.fontSize = '16px';
-                input.style.fontFamily = 'Georgia, serif';
-                input.style.transition = 'all 0.3s ease';
-                input.style.background = 'rgba(255,255,255,0.9)';
-                input.style.marginBottom = '15px';
-                input.style.display = 'block';
-                input.style.boxSizing = 'border-box';
-                
-                // Focus styles
-                input.addEventListener('focus', function() {
-                    this.style.outline = 'none';
-                    this.style.borderColor = '#4CAF50';
-                    this.style.boxShadow = '0 0 0 3px rgba(76,175,80,0.1)';
-                    this.style.background = 'white';
+            if (emailField && usernameField) {
+                emailField.addEventListener('input', function() {
+                    usernameField.value = emailField.value;
                 });
                 
-                input.addEventListener('blur', function() {
-                    this.style.boxShadow = 'none';
-                    this.style.background = 'rgba(255,255,255,0.9)';
-                    if (!this.value) {
-                        this.style.borderColor = '#ddd';
-                    }
-                });
-            });
-
-            // Style labels
-            const labels = document.querySelectorAll('label');
-            labels.forEach(label => {
-                label.style.display = 'block';
-                label.style.marginBottom = '8px';
-                label.style.fontWeight = 'bold';
-                label.style.color = '#2E7D32';
-                label.style.fontSize = '16px';
-                label.style.fontFamily = 'Georgia, serif';
-            });
-
-            // Style submit buttons
-            const submitBtns = document.querySelectorAll('input[type="submit"]');
-            submitBtns.forEach(btn => {
-                btn.style.width = '100%';
-                btn.style.padding = '16px';
-                btn.style.background = 'linear-gradient(45deg, #4CAF50, #2E7D32)';
-                btn.style.color = 'white';
-                btn.style.border = 'none';
-                btn.style.borderRadius = '10px';
-                btn.style.fontSize = '18px';
-                btn.style.fontWeight = 'bold';
-                btn.style.cursor = 'pointer';
-                btn.style.transition = 'all 0.3s ease';
-                btn.style.marginTop = '10px';
-                btn.style.marginBottom = '0';
-                btn.style.boxShadow = '0 4px 15px rgba(76,175,80,0.3)';
-                btn.style.fontFamily = 'Georgia, serif';
-                
-                // Hover effect
-                btn.addEventListener('mouseenter', function() {
-                    this.style.transform = 'translateY(-2px)';
-                    this.style.boxShadow = '0 6px 20px rgba(76,175,80,0.4)';
-                });
-                
-                btn.addEventListener('mouseleave', function() {
-                    this.style.transform = 'translateY(0)';
-                    this.style.boxShadow = '0 4px 15px rgba(76,175,80,0.3)';
-                });
-            });
-
-            // Remove any py4web default classes that might interfere
-            const allFormElements = document.querySelectorAll('input, label, form');
-            allFormElements.forEach(element => {
-                // Remove common py4web/Bootstrap classes
-                element.classList.remove('form-control', 'form-group', 'btn', 'btn-primary');
-            });
-
-            // Hide any error styling divs and restyle them
-            const errorDivs = document.querySelectorAll('.py4web-validation-error');
-            errorDivs.forEach(div => {
-                div.style.color = '#dc3545';
-                div.style.fontSize = '14px';
-                div.style.marginTop = '-10px';
-                div.style.marginBottom = '10px';
-                div.style.fontWeight = 'normal';
-            });
+                // Set initial value if email already has value
+                if (emailField.value) {
+                    usernameField.value = emailField.value;
+                }
+            }
+            
+            console.log('Custom auth form loaded');
         });
     </script>
 </body>

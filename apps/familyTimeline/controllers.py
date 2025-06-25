@@ -85,13 +85,16 @@ def create_tree_page():
 # ==========================================
 
 @action('login')
-@action.uses('auth.html', db, session, auth)
+@action.uses('auth.html', db, session)
 def login():
     """Custom login page"""
     if auth.user:
         redirect(URL('dashboard'))
     
-    form = auth.form('login')
+    # Disable auto-generated links
+    form = auth.form('login', 
+                     show_register_link=False,  # Disable "Sign Up" link
+                     show_forgot_password_link=False)  # Disable "Lost Password" link
     
     return dict(
         form=form,
@@ -99,13 +102,17 @@ def login():
     )
 
 @action('register')
-@action.uses('auth.html', db, session, auth)
+@action.uses('auth.html', db, session)
 def register():
     """Custom register page"""
-    if auth.user:
-        redirect(URL('dashboard'))
+
     
-    form = auth.form('register')
+    form = auth.form('register',
+                     show_login_link=False)  # Disable "Sign In" link
+    
+    if form.accepted:
+        # Registration successful, redirect to dashboard
+        redirect(URL('dashboard'))
     
     return dict(
         form=form,
@@ -142,7 +149,7 @@ def change_password():
     )
 
 @action('forgot-password')
-@action.uses('auth.html', db, session, auth)
+@action.uses('auth.html', db, session)
 def forgot_password():
     """Password reset request page"""
     form = auth.form('request_reset_password')
