@@ -83,11 +83,16 @@ def view_tree(family_id):
         (db.family_members.user_id == auth.user_id)
     ).select().first()
     
+    # Get the actual user record from the database
+    current_user = db.auth_user[auth.user_id]
+    
     return dict(
         family=family,
         family_code=family.id,
         family_member_count=family_member_count,
-        user_role=user_role.role if user_role else 'viewer'
+        user_role=user_role.role if user_role else 'viewer',
+        auth=auth,
+        user=current_user  # Pass the actual user record
     )
 
 # ==========================================

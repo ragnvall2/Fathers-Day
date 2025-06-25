@@ -301,6 +301,11 @@ function createColorGradients() {
 
 class SimpleFamilyTree {
     constructor(familyCode, containerId = 'treeContainer') {
+        console.log('=== DEBUG: SimpleFamilyTree Constructor ===');
+        console.log('familyCode parameter:', familyCode);
+        console.log('typeof familyCode:', typeof familyCode);
+        console.log('containerId:', containerId);
+        
         this.familyCode = familyCode;
         this.containerId = containerId;
         this.people = [];
@@ -312,26 +317,56 @@ class SimpleFamilyTree {
 
         this.nodeCustomization = new NodeCustomization(this);
         
+        console.log('After assignment - this.familyCode:', this.familyCode);
+        console.log('=== Calling init() ===');
+        
         this.init();
     }
     
     async init() {
+        console.log('=== DEBUG: init() called ===');
+        console.log('this.familyCode at start of init:', this.familyCode);
+        
         await this.loadTreeData();
         this.createTreeContainer();
         this.setupEventListeners();
         this.renderTree();
-        
     }
     
     async loadTreeData() {
-        if (!this.familyCode) return;
+        console.log('=== DEBUG: loadTreeData called ===');
+        console.log('this.familyCode:', this.familyCode);
+        
+        if (!this.familyCode) {
+            console.error('❌ No familyCode provided!');
+            return;
+        }
         
         try {
-            const response = await fetch(`/familyTimeline/api/tree/${this.familyCode}`);
+            const apiUrl = `/familyTimeline/api/tree/${this.familyCode}`;
+            console.log('🌐 Making API call to:', apiUrl);
+            
+            const response = await fetch(apiUrl);
+            console.log('📡 Response received:');
+            console.log('- Status:', response.status);
+            console.log('- Status Text:', response.statusText);
+            console.log('- OK:', response.ok);
+            
+            if (!response.ok) {
+                console.error('❌ Response not OK:', response.status, response.statusText);
+                const errorText = await response.text();
+                console.error('Error response text:', errorText);
+                return;
+            }
+            
             const data = await response.json();
+            console.log('📊 Raw API response data:', data);
             
             this.people = data.people || [];
             this.relationships = data.relationships || [];
+            
+            console.log('👥 People loaded:', this.people.length, this.people);
+            console.log('🔗 Relationships loaded:', this.relationships.length, this.relationships);
             
             // Load story counts for each person
             for (let person of this.people) {
@@ -339,26 +374,38 @@ class SimpleFamilyTree {
                     const storiesResponse = await fetch(`/familyTimeline/api/person/${person.id}/stories`);
                     const storiesData = await storiesResponse.json();
                     person.story_count = storiesData.stories ? storiesData.stories.length : 0;
+                    console.log(`📖 Person ${person.first_name} has ${person.story_count} stories`);
                 } catch (error) {
-                    console.warn(`Could not load stories for person ${person.id}:`, error);
+                    console.warn(`⚠️ Could not load stories for person ${person.id}:`, error);
                     person.story_count = 0;
                 }
             }
             
             // If no people exist, create a placeholder starter person
             if (this.people.length === 0) {
+                console.log('📝 No people found, attempting to create starter person...');
                 await this.createStarterPerson();
+            } else {
+                console.log('✅ People already exist, skipping starter person creation');
             }
             
-            console.log('Loaded tree data:', this.people);
+            console.log('🏁 loadTreeData completed. Final people array:', this.people);
         } catch (error) {
-            console.error('Error loading tree data:', error);
+            console.error('💥 Error in loadTreeData:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
         }
     }
     
 
     async createStarterPerson() {
-        console.log('Creating starter person for family:', this.familyCode);
+        console.log('=== DEBUG: Creating starter person ===');
+        console.log('this.familyCode:', this.familyCode);
+        console.log('typeof this.familyCode:', typeof this.familyCode);
+        console.log('parseInt(this.familyCode):', parseInt(this.familyCode));
         
         const starterData = {
             family_id: parseInt(this.familyCode), // Make sure it's an integer
@@ -369,23 +416,30 @@ class SimpleFamilyTree {
         };
         
         console.log('Starter person data:', starterData);
+        console.log('API URL will be:', '/familyTimeline/api/person');
         
         try {
+            console.log('Making fetch request...');
             const response = await fetch('/familyTimeline/api/person', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(starterData)
             });
             
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
+            console.log('Response received:');
+            console.log('- Status:', response.status);
+            console.log('- Status Text:', response.statusText);
+            console.log('- Headers:', Object.fromEntries(response.headers.entries()));
+            console.log('- URL:', response.url);
+            console.log('- OK:', response.ok);
             
             const responseText = await response.text();
-            console.log('Raw response:', responseText);
+            console.log('Raw response text:', responseText);
             
             let result;
             try {
                 result = JSON.parse(responseText);
+                console.log('Parsed result:', result);
             } catch (parseError) {
                 console.error('Failed to parse JSON response:', parseError);
                 console.error('Response text was:', responseText);
@@ -393,15 +447,20 @@ class SimpleFamilyTree {
             }
             
             if (result.success) {
-                console.log('Created starter person with ID:', result.person_id);
+                console.log('✅ Created starter person with ID:', result.person_id);
                 // Reload data to get the new person with proper ID
                 await this.loadTreeData();
             } else {
-                console.error('Failed to create starter person:', result);
+                console.error('❌ Failed to create starter person:', result);
                 throw new Error(result.message || 'Unknown error creating starter person');
             }
         } catch (error) {
-            console.error('Error creating starter person:', error);
+            console.error('💥 Error creating starter person:', error);
+            console.error('Error details:', {
+                name: error.name,
+                message: error.message,
+                stack: error.stack
+            });
             // Don't throw the error - just log it and continue without a starter person
             console.log('Continuing without starter person...');
         }
@@ -448,13 +507,30 @@ class SimpleFamilyTree {
         group.style.cursor = 'pointer';
         
         // Get person's custom color or default
-        const nodeColor = person.node_color || '#90EE90';
+        const nodeColorName = person.node_color || 'green';
         const nodeShape = person.node_shape || 'circle';
-        
+
+        // Convert color name to hex color
+        const colorMap = {
+            'green': '#90EE90',
+            'blue': '#87CEEB', 
+            'purple': '#DDA0DD',
+            'pink': '#FFB6C1',
+            'orange': '#FFA500',
+            'red': '#FF6347',
+            'gold': '#FFD700',
+            'silver': '#E0E0E0'
+        };
+
+        // Get the actual hex color
+        const nodeColor = colorMap[nodeColorName] || nodeColorName || '#90EE90';
+
+        console.log(`Creating node for ${person.first_name} - Color name: ${nodeColorName}, Hex: ${nodeColor}, Shape: ${nodeShape}`);
+
         // Create dynamic gradient for custom colors
         const gradientId = `gradient-${person.id}`;
         const darkColor = this.darkenColor(nodeColor, 0.3);
-        
+
         console.log(`Using colors: ${nodeColor} -> ${darkColor}, Gradient ID: ${gradientId}`);
         
         // Add gradient to defs if it doesn't exist
@@ -620,18 +696,63 @@ class SimpleFamilyTree {
 
     // Add this helper method to SimpleFamilyTree class
     darkenColor(color, factor) {
-        const hex = color.replace('#', '');
-        const r = parseInt(hex.substr(0, 2), 16);
-        const g = parseInt(hex.substr(2, 2), 16);
-        const b = parseInt(hex.substr(4, 2), 16);
+        // Handle CSS color names by converting them to hex first
+        const colorMap = {
+            'green': '#90EE90',
+            'blue': '#87CEEB',
+            'purple': '#DDA0DD',
+            'pink': '#FFB6C1',
+            'orange': '#FFA500',
+            'red': '#FF6347',
+            'gold': '#FFD700',
+            'silver': '#E0E0E0'
+        };
         
-        const darkR = Math.floor(r * (1 - factor));
-        const darkG = Math.floor(g * (1 - factor));
-        const darkB = Math.floor(b * (1 - factor));
+        // Convert CSS color name to hex if needed
+        if (colorMap[color]) {
+            color = colorMap[color];
+        }
         
-        return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
+        // Ensure color starts with #
+        if (!color.startsWith('#')) {
+            console.warn('Invalid color format:', color, 'using default green');
+            color = '#90EE90';
+        }
+        
+        try {
+            const hex = color.replace('#', '');
+            
+            // Validate hex length
+            if (hex.length !== 6) {
+                console.warn('Invalid hex color length:', color, 'using default green');
+                color = '#90EE90';
+                const hex = color.replace('#', '');
+            }
+            
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+            
+            // Validate parsed values
+            if (isNaN(r) || isNaN(g) || isNaN(b)) {
+                console.warn('Failed to parse color:', color, 'using default green');
+                return '#228B22'; // Default dark green
+            }
+            
+            const darkR = Math.floor(r * (1 - factor));
+            const darkG = Math.floor(g * (1 - factor));
+            const darkB = Math.floor(b * (1 - factor));
+            
+            const result = `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
+            
+            console.log(`Color conversion: ${color} -> ${result}`);
+            return result;
+            
+        } catch (error) {
+            console.error('Error in darkenColor:', error, 'color:', color);
+            return '#228B22'; // Default dark green fallback
+        }
     }
-    
     
     createTreeContainer() {
         const container = document.getElementById(this.containerId);
@@ -1524,6 +1645,10 @@ class SimpleFamilyTree {
     }
     
     openAddStoryModal(personId) {
+        console.log('=== DEBUG: openAddStoryModal called ===');
+        console.log('personId:', personId);
+        console.log('window.currentUser:', window.currentUser);
+        
         const modal = document.getElementById('addStoryModal');
         if (modal) {
             // Set the person ID for the story
@@ -1536,8 +1661,21 @@ class SimpleFamilyTree {
                 document.getElementById('storyPersonName').textContent = personName;
             }
             
+            // Pre-fill the author name with the current user's name
+            const authorInput = document.getElementById('storyAuthor');
+            if (authorInput && window.currentUser) {
+                authorInput.value = window.currentUser.name;
+                authorInput.readOnly = true; // Make it read-only since it's the logged-in user
+                authorInput.style.backgroundColor = '#f5f5f5'; // Visual indication it's read-only
+            }
+            
             modal.style.display = 'block';
             document.getElementById('storyForm').reset();
+            
+            // Re-set the author after reset
+            if (authorInput && window.currentUser) {
+                authorInput.value = window.currentUser.name;
+            }
             
             // Clear photo preview
             const photoPreview = document.getElementById('storyPhotoPreview');
@@ -1637,10 +1775,17 @@ class SimpleFamilyTree {
     async handleAddPersonSubmit(e) {
         e.preventDefault();
         
+        console.log('=== DEBUG: handleAddPersonSubmit called ===');
+        console.log('this.familyCode:', this.familyCode);
+        console.log('this.currentAddType:', this.currentAddType);
+        console.log('this.currentParentId:', this.currentParentId);
+        
         try {
             const formData = new FormData(e.target);
+            
+            // IMPORTANT: Add the family_id from this.familyCode
             const personData = {
-                family_code: this.familyCode,
+                family_id: parseInt(this.familyCode), // Add this line!
                 first_name: formData.get('first_name'),
                 last_name: formData.get('last_name'),
                 maiden_name: formData.get('maiden_name'),
@@ -1653,6 +1798,8 @@ class SimpleFamilyTree {
                 bio_summary: formData.get('bio_summary')
             };
             
+            console.log('Person data to submit:', personData);
+            
             // Handle photo upload
             const photoFile = formData.get('photo');
             if (photoFile && photoFile.size > 0) {
@@ -1661,6 +1808,7 @@ class SimpleFamilyTree {
                 personData.photo_filename = photoFile.name;
             }
             
+            console.log('Making API call to create person...');
             const response = await fetch('/familyTimeline/api/person', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -1668,10 +1816,12 @@ class SimpleFamilyTree {
             });
             
             const result = await response.json();
+            console.log('Person creation result:', result);
             
             if (result.success) {
                 // Create relationship if this is a spouse or child
                 if (this.currentAddType && this.currentParentId) {
+                    console.log(`Creating ${this.currentAddType} relationship between ${this.currentParentId} and ${result.person_id}`);
                     await this.createRelationship(this.currentParentId, result.person_id, this.currentAddType);
                 }
                 
@@ -1690,22 +1840,41 @@ class SimpleFamilyTree {
     }
     
     async createRelationship(person1Id, person2Id, type) {
+        console.log('=== DEBUG: createRelationship called ===');
+        console.log('person1Id:', person1Id);
+        console.log('person2Id:', person2Id);
+        console.log('type:', type);
+        console.log('this.familyCode:', this.familyCode);
+        
         const relationshipData = {
-            family_code: this.familyCode,
+            family_id: parseInt(this.familyCode), // Add this line!
             person1_id: parseInt(person1Id),
             person2_id: parseInt(person2Id),
             relationship_type: type === 'spouse' ? 'spouse' : 'parent'
         };
         
-        const response = await fetch('/familyTimeline/api/relationship', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(relationshipData)
-        });
+        console.log('Relationship data to submit:', relationshipData);
         
-        return response.json();
+        try {
+            const response = await fetch('/familyTimeline/api/relationship', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(relationshipData)
+            });
+            
+            const result = await response.json();
+            console.log('Relationship creation result:', result);
+            
+            if (!result.success) {
+                throw new Error(result.message || 'Failed to create relationship');
+            }
+            
+            return result;
+        } catch (error) {
+            console.error('Error creating relationship:', error);
+            throw error;
+        }
     }
-    
     async handleStorySubmit(e) {
         e.preventDefault();
         
@@ -1814,10 +1983,28 @@ class SimpleFamilyTree {
 
 // Initialize the simplified family tree
 document.addEventListener('DOMContentLoaded', function() {
-    const familyCode = new URLSearchParams(window.location.search).get('family') || window.familyCode;
+    console.log('=== DEBUG: DOMContentLoaded event fired ===');
+    console.log('Current URL:', window.location.href);
+    console.log('URL search params:', window.location.search);
     
-    if (familyCode) {
-        window.familyTree = new SimpleFamilyTree(familyCode);
+    const urlParams = new URLSearchParams(window.location.search);
+    const familyCodeFromURL = urlParams.get('family');
+    const familyCodeFromWindow = window.familyCode;
+    
+    console.log('familyCodeFromURL:', familyCodeFromURL);
+    console.log('familyCodeFromWindow:', familyCodeFromWindow);
+    
+    const finalFamilyCode = familyCodeFromURL || familyCodeFromWindow;
+    console.log('Final familyCode to use:', finalFamilyCode);
+    console.log('typeof finalFamilyCode:', typeof finalFamilyCode);
+    
+    if (finalFamilyCode) {
+        console.log('✅ Creating SimpleFamilyTree with familyCode:', finalFamilyCode);
+        window.familyTree = new SimpleFamilyTree(finalFamilyCode);
+    } else {
+        console.error('❌ No family code found! Cannot initialize tree.');
+        console.log('URL params available:', Array.from(urlParams.entries()));
+        console.log('window.familyCode:', window.familyCode);
     }
 });
 
