@@ -223,18 +223,74 @@
                     <div class="node-options">
                         <div class="color-picker-group">
                             <label>Node Color</label>
-                            <div class="color-swatches">
-                                <div class="color-swatch swatch-green selected" data-color="green" title="Green"></div>
-                                <div class="color-swatch swatch-blue" data-color="blue" title="Blue"></div>
-                                <div class="color-swatch swatch-purple" data-color="purple" title="Purple"></div>
-                                <div class="color-swatch swatch-pink" data-color="pink" title="Pink"></div>
-                                <div class="color-swatch swatch-orange" data-color="orange" title="Orange"></div>
-                                <div class="color-swatch swatch-red" data-color="red" title="Red"></div>
-                                <div class="color-swatch swatch-gold" data-color="gold" title="Gold"></div>
-                                <div class="color-swatch swatch-silver" data-color="silver" title="Silver"></div>
+                            
+                            <!-- Position the color input over the preview -->
+                            <div style="position: relative; display: inline-block;">
+                                <input type="color" id="editNodeColor" name="node_color" value="#90EE90" style="
+                                    position: absolute;
+                                    top: 0;
+                                    left: 0;
+                                    width: 60px;
+                                    height: 40px;
+                                    opacity: 0;
+                                    cursor: pointer;
+                                    border: none;
+                                ">
+                                
+                                <div class="color-preview" id="colorPreview" style="
+                                    width: 60px; 
+                                    height: 40px; 
+                                    border: 2px solid #ccc; 
+                                    border-radius: 8px;
+                                    background: linear-gradient(45deg, #90EE90, #228B22);
+                                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                                    cursor: pointer;
+                                    pointer-events: none;
+                                "></div>
                             </div>
-                            <input type="hidden" id="editNodeColor" name="node_color" value="green">
+                            
+                            <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                                Click above to choose any color
+                            </small>
                         </div>
+
+                        <script>
+                        document.addEventListener('DOMContentLoaded', function() {
+                            const colorInput = document.getElementById('editNodeColor');
+                            const colorPreview = document.getElementById('colorPreview');
+                            
+                            if (colorInput && colorPreview) {
+                                // Update preview when color changes
+                                colorInput.addEventListener('change', function() {
+                                    updateColorPreview(this.value);
+                                });
+                                
+                                // Also update on input (real-time as user drags)
+                                colorInput.addEventListener('input', function() {
+                                    updateColorPreview(this.value);
+                                });
+                                
+                                function updateColorPreview(color) {
+                                    // Create darker shade for gradient
+                                    const darkColor = darkenColor(color, 0.3);
+                                    colorPreview.style.background = `linear-gradient(45deg, ${color}, ${darkColor})`;
+                                }
+                                
+                                function darkenColor(color, factor) {
+                                    const hex = color.replace('#', '');
+                                    const r = parseInt(hex.substr(0, 2), 16);
+                                    const g = parseInt(hex.substr(2, 2), 16);
+                                    const b = parseInt(hex.substr(4, 2), 16);
+                                    
+                                    const darkR = Math.floor(r * (1 - factor));
+                                    const darkG = Math.floor(g * (1 - factor));
+                                    const darkB = Math.floor(b * (1 - factor));
+                                    
+                                    return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
+                                }
+                            }
+                        });
+                        </script>
                         
                         <div class="shape-picker-group">
                             <label>Node Shape</label>
@@ -244,7 +300,7 @@
                                 <div class="shape-option diamond" data-shape="diamond" title="Diamond"></div>
                                 <div class="shape-option hexagon" data-shape="hexagon" title="Hexagon"></div>
                                 <div class="shape-option star" data-shape="star" title="Star"></div>
-                                <div class="shape-option heart" data-shape="heart" title="Heart"></div>
+                                <div class="shape-option triangle" data-shape="triangle" title="Triangle"></div>
                             </div>
                             <input type="hidden" id="editNodeShape" name="node_shape" value="circle">
                         </div>

@@ -43,6 +43,8 @@ db.define_table(
     Field('generation_level', 'integer', default=0),  # 0=root, 1=children, -1=parents
     Field('created_at', 'datetime', default=datetime.utcnow),
     Field('updated_at', 'datetime', default=datetime.utcnow, update=datetime.utcnow),
+    Field('node_color', 'string', length=20, default='green'),
+    Field('node_shape', 'string', length=20, default='circle'),
     format='%(first_name)s %(last_name)s'
 )
 
@@ -103,8 +105,7 @@ db.define_table(
     Field('root_person_id', 'reference people'),  # Starting point of tree
     Field('created_at', 'datetime', default=datetime.utcnow),
     Field('updated_at', 'datetime', default=datetime.utcnow, update=datetime.utcnow),
-    Field('node_color', 'string', length=20, default='green'),
-    Field('node_shape', 'string', length=20, default='circle'),
+    
 )
 
 # Helper functions for family tree operations
@@ -192,6 +193,12 @@ def add_relationship(family_id, person1_id, person2_id, relationship_type, **kwa
 def get_family_tree_data(family_id):
     """Get all people and relationships for a family tree"""
     people = db(db.people.family_id == family_id).select()
+
+    # ADD THIS DEBUG LINE:
+    for person in people:
+        print(f"Person {person.first_name}: node_color={person.node_color}, node_shape={person.node_shape}")
+    
+    
     relationships = db(db.relationships.family_id == family_id).select()
     
     # Convert to dict format for easy JSON serialization
@@ -213,7 +220,9 @@ def get_family_tree_data(family_id):
             'has_photo': bool(person.profile_photo),
             'generation_level': person.generation_level,
             'tree_position_x': person.tree_position_x,
-            'tree_position_y': person.tree_position_y
+            'tree_position_y': person.tree_position_y,
+            'node_color': person.node_color or 'green',
+            'node_shape': person.node_shape or 'circle'
         })
     
     relationships_data = []

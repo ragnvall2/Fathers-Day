@@ -776,11 +776,13 @@ body {
 .shape-option.star::after {
     content: '⭐';
     font-size: 16px;
+    color: #666;
 }
 
-.shape-option.heart::after {
-    content: '❤️';
+.shape-option.triangle::after {
+    content: '▲';
     font-size: 16px;
+    color: #666;
 }
 
 /* Theme Questions for Story Form */

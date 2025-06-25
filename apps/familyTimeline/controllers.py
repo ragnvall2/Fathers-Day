@@ -233,7 +233,9 @@ def update_person_endpoint(person_id):
         'birth_place': data.get('birth_place', ''),
         'gender': data.get('gender', ''),
         'is_living': data.get('is_living', True),
-        'bio_summary': data.get('bio_summary', '')
+        'bio_summary': data.get('bio_summary', ''),
+        'node_color': data.get('node_color', 'green'),
+        'node_shape': data.get('node_shape', 'circle')
     }
     
     # Handle photo if present

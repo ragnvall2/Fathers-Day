@@ -37,30 +37,37 @@ function createStarPath(cx, cy, size) {
 }
 
 function createHeartPath(cx, cy, size) {
-    const scale = size / 20;
-    return `M ${cx},${cy + 5 * scale} 
-            C ${cx},${cy + 2 * scale} ${cx - 10 * scale},${cy - 5 * scale} ${cx - 10 * scale},${cy - 8 * scale}
-            C ${cx - 10 * scale},${cy - 12 * scale} ${cx - 5 * scale},${cy - 12 * scale} ${cx},${cy - 8 * scale}
-            C ${cx + 5 * scale},${cy - 12 * scale} ${cx + 10 * scale},${cy - 12 * scale} ${cx + 10 * scale},${cy - 8 * scale}
-            C ${cx + 10 * scale},${cy - 5 * scale} ${cx},${cy + 2 * scale} ${cx},${cy + 5 * scale} Z`;
+    const scale = size / 10; // Changed from 20 to 10 to make it bigger
+    return `M ${cx},${cy + 3 * scale} 
+            C ${cx},${cy + 1 * scale} ${cx - 6 * scale},${cy - 3 * scale} ${cx - 6 * scale},${cy - 5 * scale}
+            C ${cx - 6 * scale},${cy - 7 * scale} ${cx - 3 * scale},${cy - 7 * scale} ${cx},${cy - 5 * scale}
+            C ${cx + 3 * scale},${cy - 7 * scale} ${cx + 6 * scale},${cy - 7 * scale} ${cx + 6 * scale},${cy - 5 * scale}
+            C ${cx + 6 * scale},${cy - 3 * scale} ${cx},${cy + 1 * scale} ${cx},${cy + 3 * scale} Z`;
 }
 
 class NodeCustomization {
     constructor(familyTree) {
         this.familyTree = familyTree;
         this.setupCustomizationHandlers();
-        this.nodeCustomization = new NodeCustomization(this);
+        
     }
     
     setupCustomizationHandlers() {
-        // Color swatch selection
-        document.addEventListener('click', (e) => {
-            if (e.target.classList.contains('color-swatch')) {
-                this.handleColorSelection(e.target);
+        // Color picker selection
+        document.addEventListener('change', (e) => {
+            if (e.target.type === 'color' && e.target.name === 'node_color') {
+                this.handleColorPickerChange(e.target);
             }
         });
         
-        // Shape selection
+        // Real-time color updates as user drags
+        document.addEventListener('input', (e) => {
+            if (e.target.type === 'color' && e.target.name === 'node_color') {
+                this.handleColorPickerChange(e.target);
+            }
+        });
+        
+        // Shape selection (keep existing)
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('shape-option')) {
                 this.handleShapeSelection(e.target);
@@ -68,25 +75,33 @@ class NodeCustomization {
         });
     }
     
-    handleColorSelection(swatch) {
-        const form = swatch.closest('form');
-        if (!form) return;
+    handleColorPickerChange(colorPicker) {
+        const form = colorPicker.closest('form');
+        const selectedColor = colorPicker.value;
         
-        // Remove selected class from all color swatches in this form
-        form.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-        
-        // Add selected class to clicked swatch
-        swatch.classList.add('selected');
-        
-        // Update hidden input
-        const colorInput = form.querySelector('input[name="node_color"]');
-        const color = swatch.getAttribute('data-color');
-        if (colorInput) {
-            colorInput.value = color;
+        // Update the color preview box
+        const preview = form.querySelector('#colorPreview');
+        if (preview) {
+            const darkColor = this.darkenColor(selectedColor, 0.3);
+            preview.style.background = `linear-gradient(45deg, ${selectedColor}, ${darkColor})`;
         }
         
-        // Update preview
-        this.updatePreview(form, color, null);
+        // Update SVG preview if it exists
+        this.updatePreview(form, selectedColor, null);
+    }
+
+    // Add this helper function to NodeCustomization class
+    darkenColor(color, factor) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        
+        const darkR = Math.floor(r * (1 - factor));
+        const darkG = Math.floor(g * (1 - factor));
+        const darkB = Math.floor(b * (1 - factor));
+        
+        return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
     }
     
     handleShapeSelection(shapeOption) {
@@ -121,12 +136,12 @@ class NodeCustomization {
         const currentColor = color || form.querySelector('input[name="node_color"]').value;
         const currentShape = shape || form.querySelector('input[name="node_shape"]').value;
         
-        // Update colors
-        if (NODE_COLORS[currentColor]) {
-            const colors = NODE_COLORS[currentColor];
-            if (gradientStart) gradientStart.style.stopColor = colors.start;
-            if (gradientEnd) gradientEnd.style.stopColor = colors.end;
-            previewNode.setAttribute('stroke', colors.stroke);
+        // Update colors - now using hex color directly
+        if (currentColor) {
+            const darkColor = this.darkenColor(currentColor, 0.3);
+            if (gradientStart) gradientStart.style.stopColor = currentColor;
+            if (gradientEnd) gradientEnd.style.stopColor = darkColor;
+            previewNode.setAttribute('stroke', darkColor);
         }
         
         // Update shape
@@ -134,54 +149,115 @@ class NodeCustomization {
     }
     
     updatePreviewShape(node, shape) {
-        // Reset transform
-        node.style.transform = '';
+        const svg = node.closest('svg');
+        const cx = 40;
+        const cy = 30;
+        
+        // Remove existing preview node
+        const existingNode = svg.querySelector('#previewNode');
+        if (existingNode) existingNode.remove();
+        
+        // Create new shape element based on type
+        let newNode;
         
         switch (shape) {
             case 'circle':
-                node.setAttribute('rx', '25');
-                node.setAttribute('ry', '18');
+                newNode = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                newNode.setAttribute('cx', cx);
+                newNode.setAttribute('cy', cy);
+                newNode.setAttribute('r', '20');
                 break;
+                
             case 'square':
-                node.setAttribute('rx', '8');
-                node.setAttribute('ry', '8');
+                newNode = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                newNode.setAttribute('x', cx - 20);
+                newNode.setAttribute('y', cy - 20);
+                newNode.setAttribute('width', '40');
+                newNode.setAttribute('height', '40');
                 break;
+                
             case 'diamond':
-                node.setAttribute('rx', '20');
-                node.setAttribute('ry', '20');
-                node.style.transform = 'rotate(45deg)';
-                node.style.transformOrigin = '40px 30px';
+                newNode = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                newNode.setAttribute('x', cx - 15);
+                newNode.setAttribute('y', cy - 15);
+                newNode.setAttribute('width', '30');
+                newNode.setAttribute('height', '30');
+                newNode.setAttribute('transform', `rotate(45 ${cx} ${cy})`);
                 break;
+                
             case 'hexagon':
-                node.setAttribute('rx', '22');
-                node.setAttribute('ry', '15');
+                newNode = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const hexPoints = [
+                    [cx, cy - 18],      // top
+                    [cx + 16, cy - 9],  // top right
+                    [cx + 16, cy + 9],  // bottom right
+                    [cx, cy + 18],      // bottom
+                    [cx - 16, cy + 9],  // bottom left
+                    [cx - 16, cy - 9]   // top left
+                ];
+                newNode.setAttribute('points', hexPoints.map(p => p.join(',')).join(' '));
                 break;
+                
             case 'star':
-                // For star, we'd need to create a path instead of ellipse
-                // For now, just make it more angular
-                node.setAttribute('rx', '20');
-                node.setAttribute('ry', '20');
+                newNode = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const starPoints = [
+                    [cx, cy - 18],           // top point
+                    [cx + 5, cy - 6],        // top right inner
+                    [cx + 17, cy - 6],       // top right outer
+                    [cx + 7, cy + 2],        // right inner
+                    [cx + 11, cy + 14],      // bottom right outer
+                    [cx, cy + 7],            // bottom inner
+                    [cx - 11, cy + 14],      // bottom left outer
+                    [cx - 7, cy + 2],        // left inner
+                    [cx - 17, cy - 6],       // top left outer
+                    [cx - 5, cy - 6]         // top left inner
+                ];
+                newNode.setAttribute('points', starPoints.map(p => p.join(',')).join(' '));
                 break;
-            case 'heart':
-                // For heart, we'd need to create a path instead of ellipse
-                // For now, just make it more rounded
-                node.setAttribute('rx', '25');
-                node.setAttribute('ry', '20');
+                
+            case 'triangle':
+                newNode = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const triPoints = [
+                    [cx, cy - 18],      // top point
+                    [cx - 16, cy + 13], // bottom left
+                    [cx + 16, cy + 13]  // bottom right
+                ];
+                newNode.setAttribute('points', triPoints.map(p => p.join(',')).join(' '));
                 break;
+                
+            default:
+                newNode = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                newNode.setAttribute('cx', cx);
+                newNode.setAttribute('cy', cy);
+                newNode.setAttribute('r', '20');
         }
+        
+        // Apply common attributes
+        newNode.setAttribute('id', 'previewNode');
+        newNode.setAttribute('fill', 'url(#previewGradient)');
+        newNode.setAttribute('stroke', '#228B22');
+        newNode.setAttribute('stroke-width', '2');
+        
+        // Insert back into SVG
+        svg.appendChild(newNode);
     }
     
     // Load customization from person data
     loadPersonCustomization(person, form) {
-        const nodeColor = person.node_color || 'green';
+        const nodeColor = person.node_color || '#90EE90';
         const nodeShape = person.node_shape || 'circle';
         
-        // Update color selection
-        const colorSwatch = form.querySelector(`.color-swatch[data-color="${nodeColor}"]`);
-        if (colorSwatch) {
-            form.querySelectorAll('.color-swatch').forEach(s => s.classList.remove('selected'));
-            colorSwatch.classList.add('selected');
-            form.querySelector('input[name="node_color"]').value = nodeColor;
+        // Update color picker value
+        const colorPicker = form.querySelector('input[name="node_color"]');
+        if (colorPicker) {
+            colorPicker.value = nodeColor;
+            
+            // Update color preview
+            const preview = form.querySelector('#colorPreview');
+            if (preview) {
+                const darkColor = this.darkenColor(nodeColor, 0.3);
+                preview.style.background = `linear-gradient(45deg, ${nodeColor}, ${darkColor})`;
+            }
         }
         
         // Update shape selection
@@ -233,6 +309,8 @@ class SimpleFamilyTree {
         this.scale = 1;
         this.panX = 0;
         this.panY = 0;
+
+        this.nodeCustomization = new NodeCustomization(this);
         
         this.init();
     }
@@ -339,62 +417,136 @@ class SimpleFamilyTree {
     }
 
     createPersonNode(container, person) {    
+        // Debug line to see what we're working with
+        console.log(`Creating node for ${person.first_name} - Color: ${person.node_color}, Shape: ${person.node_shape}`);
+        
         const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
         group.setAttribute('class', 'person-node');
         group.setAttribute('data-person-id', person.id);
         group.style.cursor = 'pointer';
         
-        // Get person's custom appearance or defaults
-        const nodeColor = person.node_color || 'green';
+        // Get person's custom color or default
+        const nodeColor = person.node_color || '#90EE90';
         const nodeShape = person.node_shape || 'circle';
         
-        // Create shape based on nodeShape
-        let shapeElement;
+        // Create dynamic gradient for custom colors
+        const gradientId = `gradient-${person.id}`;
+        const darkColor = this.darkenColor(nodeColor, 0.3);
         
-        if (nodeShape === 'star') {
-            // Create star path
-            shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const starPath = createStarPath(person.x, person.y, 25);
-            shapeElement.setAttribute('d', starPath);
-        } else if (nodeShape === 'heart') {
-            // Create heart path
-            shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-            const heartPath = createHeartPath(person.x, person.y, 20);
-            shapeElement.setAttribute('d', heartPath);
-        } else {
-            // Create ellipse for other shapes
-            shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'ellipse');
-            shapeElement.setAttribute('cx', person.x);
-            shapeElement.setAttribute('cy', person.y);
-            
-            // Apply shape-specific attributes
-            switch (nodeShape) {
-                case 'square':
-                    shapeElement.setAttribute('rx', '25');
-                    shapeElement.setAttribute('ry', '25');
-                    shapeElement.style.transform = `translate(${person.x}px, ${person.y}px) rotate(0deg) translate(-${person.x}px, -${person.y}px)`;
-                    break;
-                case 'diamond':
-                    shapeElement.setAttribute('rx', '35');
-                    shapeElement.setAttribute('ry', '35');
-                    shapeElement.style.transform = `translate(${person.x}px, ${person.y}px) rotate(45deg) translate(-${person.x}px, -${person.y}px)`;
-                    shapeElement.style.transformOrigin = `${person.x}px ${person.y}px`;
-                    break;
-                case 'hexagon':
-                    shapeElement.setAttribute('rx', '40');
-                    shapeElement.setAttribute('ry', '25');
-                    break;
-                default: // circle
-                    shapeElement.setAttribute('rx', '50');
-                    shapeElement.setAttribute('ry', '35');
+        console.log(`Using colors: ${nodeColor} -> ${darkColor}, Gradient ID: ${gradientId}`);
+        
+        // Add gradient to defs if it doesn't exist
+        const defs = document.querySelector('#familyTreeSVG defs');
+        if (defs) {
+            // Remove existing gradient if it exists
+            const existingGradient = document.getElementById(gradientId);
+            if (existingGradient) {
+                existingGradient.remove();
             }
+            
+            const gradient = document.createElementNS('http://www.w3.org/2000/svg', 'radialGradient');
+            gradient.setAttribute('id', gradientId);
+            gradient.setAttribute('cx', '30%');
+            gradient.setAttribute('cy', '30%');
+            gradient.setAttribute('r', '70%');
+            
+            const stop1 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop1.setAttribute('offset', '0%');
+            stop1.setAttribute('style', `stop-color:${nodeColor};stop-opacity:1`);
+            
+            const stop2 = document.createElementNS('http://www.w3.org/2000/svg', 'stop');
+            stop2.setAttribute('offset', '100%');
+            stop2.setAttribute('style', `stop-color:${darkColor};stop-opacity:1`);
+            
+            gradient.appendChild(stop1);
+            gradient.appendChild(stop2);
+            defs.appendChild(gradient);
+            
+            console.log(`Created gradient ${gradientId} with colors ${nodeColor} -> ${darkColor}`);
         }
         
-        // Apply color
-        shapeElement.setAttribute('fill', `url(#${nodeColor}Gradient)`);
-        shapeElement.setAttribute('stroke', NODE_COLORS[nodeColor].stroke);
+        // Create shape based on nodeShape using native SVG elements
+        let shapeElement;
+        
+        switch (nodeShape) {
+            case 'circle':
+                shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                shapeElement.setAttribute('cx', person.x);
+                shapeElement.setAttribute('cy', person.y);
+                shapeElement.setAttribute('r', '25');
+                break;
+                
+            case 'square':
+                shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                shapeElement.setAttribute('x', person.x - 25);
+                shapeElement.setAttribute('y', person.y - 25);
+                shapeElement.setAttribute('width', '50');
+                shapeElement.setAttribute('height', '50');
+                break;
+                
+            case 'diamond':
+                shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                shapeElement.setAttribute('x', person.x - 20);
+                shapeElement.setAttribute('y', person.y - 20);
+                shapeElement.setAttribute('width', '40');
+                shapeElement.setAttribute('height', '40');
+                shapeElement.setAttribute('transform', `rotate(45 ${person.x} ${person.y})`);
+                break;
+                
+            case 'hexagon':
+                shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const hexPoints = [
+                    [person.x, person.y - 25],      // top
+                    [person.x + 22, person.y - 12], // top right
+                    [person.x + 22, person.y + 12], // bottom right
+                    [person.x, person.y + 25],      // bottom
+                    [person.x - 22, person.y + 12], // bottom left
+                    [person.x - 22, person.y - 12]  // top left
+                ];
+                shapeElement.setAttribute('points', hexPoints.map(p => p.join(',')).join(' '));
+                break;
+                
+            case 'star':
+                shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const starPoints = [
+                    [person.x, person.y - 25],           // top point
+                    [person.x + 7, person.y - 8],       // top right inner
+                    [person.x + 24, person.y - 8],      // top right outer
+                    [person.x + 10, person.y + 3],      // right inner
+                    [person.x + 15, person.y + 20],     // bottom right outer
+                    [person.x, person.y + 10],          // bottom inner
+                    [person.x - 15, person.y + 20],     // bottom left outer
+                    [person.x - 10, person.y + 3],      // left inner
+                    [person.x - 24, person.y - 8],      // top left outer
+                    [person.x - 7, person.y - 8]        // top left inner
+                ];
+                shapeElement.setAttribute('points', starPoints.map(p => p.join(',')).join(' '));
+                break;
+                
+            case 'triangle':
+                shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                const triPoints = [
+                    [person.x, person.y - 25],      // top point
+                    [person.x - 22, person.y + 18], // bottom left
+                    [person.x + 22, person.y + 18]  // bottom right
+                ];
+                shapeElement.setAttribute('points', triPoints.map(p => p.join(',')).join(' '));
+                break;
+                
+            default: // fallback to circle
+                shapeElement = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+                shapeElement.setAttribute('cx', person.x);
+                shapeElement.setAttribute('cy', person.y);
+                shapeElement.setAttribute('r', '25');
+        }
+        
+        // Apply color - this is the key part!
+        shapeElement.setAttribute('fill', `url(#${gradientId})`);
+        shapeElement.setAttribute('stroke', darkColor);
         shapeElement.setAttribute('stroke-width', '2');
         shapeElement.setAttribute('filter', 'url(#leafShadow)');
+        
+        console.log(`Applied fill: url(#${gradientId}) and stroke: ${darkColor}`);
         
         group.appendChild(shapeElement);
         
@@ -418,30 +570,8 @@ class SimpleFamilyTree {
             bookIcon.textContent = '📖';
             group.appendChild(bookIcon);
         }
-        
-        // Person photo or initial
-        if (person.has_photo) {
-            const photo = document.createElementNS('http://www.w3.org/2000/svg', 'image');
-            photo.setAttribute('x', person.x - 25);
-            photo.setAttribute('y', person.y - 25);
-            photo.setAttribute('width', '50');
-            photo.setAttribute('height', '50');
-            photo.setAttribute('href', `/familyTimeline/api/person-photo/${person.id}`);
-            photo.setAttribute('clip-path', 'circle(22px)');
-            group.appendChild(photo);
-        } else {
-            const initial = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-            initial.setAttribute('x', person.x);
-            initial.setAttribute('y', person.y + 5);
-            initial.setAttribute('text-anchor', 'middle');
-            initial.setAttribute('font-family', 'Arial, sans-serif');
-            initial.setAttribute('font-size', '20');
-            initial.setAttribute('font-weight', 'bold');
-            initial.setAttribute('fill', '#2F4F2F');
-            initial.textContent = person.first_name.charAt(0);
-            group.appendChild(initial);
-        }
-        
+
+
         // Name label
         const nameLabel = document.createElementNS('http://www.w3.org/2000/svg', 'text');
         nameLabel.setAttribute('x', person.x);
@@ -452,23 +582,32 @@ class SimpleFamilyTree {
         nameLabel.setAttribute('font-weight', 'bold');
         nameLabel.setAttribute('fill', '#2F4F2F');
         nameLabel.textContent = `${person.first_name} ${person.last_name || ''}`.trim();
-        
+
         group.appendChild(nameLabel);
-        
+
         // Click handler for context menu
         group.addEventListener('click', (e) => {
             e.stopPropagation();
-            console.log('Node clicked - Person ID:', person.id, 'Person object:', person);
-            
             if (person.id) {
                 this.showContextMenu(person.id, e);
-            } else {
-                console.error('Person node clicked but no ID found:', person);
-                alert('Error: Person data is incomplete. Please refresh the page.');
             }
         });
-        
+
         container.appendChild(group);
+    }
+
+    // Add this helper method to SimpleFamilyTree class
+    darkenColor(color, factor) {
+        const hex = color.replace('#', '');
+        const r = parseInt(hex.substr(0, 2), 16);
+        const g = parseInt(hex.substr(2, 2), 16);
+        const b = parseInt(hex.substr(4, 2), 16);
+        
+        const darkR = Math.floor(r * (1 - factor));
+        const darkG = Math.floor(g * (1 - factor));
+        const darkB = Math.floor(b * (1 - factor));
+        
+        return `#${darkR.toString(16).padStart(2, '0')}${darkG.toString(16).padStart(2, '0')}${darkB.toString(16).padStart(2, '0')}`;
     }
     
     
@@ -518,6 +657,8 @@ class SimpleFamilyTree {
                 <div class="context-item" id="deletePerson">🗑️ Delete Person</div>
             </div>
         `;
+
+        createColorGradients();
     }
     
     setupEventListeners() {
@@ -825,8 +966,12 @@ class SimpleFamilyTree {
                 birth_place: formData.get('birth_place'),
                 gender: formData.get('gender'),
                 is_living: formData.get('is_living') === 'on',
-                bio_summary: formData.get('bio_summary')
+                bio_summary: formData.get('bio_summary'),
+                node_color: formData.get('node_color') || 'green',
+                node_shape: formData.get('node_shape') || 'circle'
             };
+
+            console.log('Sending person data with colors:', personData);
             
             // Handle photo upload if new photo is selected
             const photoFile = formData.get('photo');
@@ -1291,6 +1436,10 @@ class SimpleFamilyTree {
         const deathDateGroup = document.getElementById('editDeathDateGroup');
         if (deathDateGroup) {
             deathDateGroup.style.display = person.is_living ? 'none' : 'block';
+        }
+
+        if (this.nodeCustomization) {
+            this.nodeCustomization.loadPersonCustomization(person, document.getElementById('editPersonForm'));
         }
     }
     
