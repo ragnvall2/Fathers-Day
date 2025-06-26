@@ -27,12 +27,20 @@ class GridFamilyTree {
         this.isOwner = false;
         this.selectedPerson = null;
         this.pendingGridPosition = null;
+
+        // Relationship creation state
+        this.isConnecting = false;
+        this.connectionMode = null; // 'spouse' or 'parent'
+        this.firstPersonSelected = null;
+        this.connectionPreview = null;
         
         // Drag and drop state
         this.isDragging = false;
         this.draggedPerson = null;
         this.dragStartPos = null;
         this.dragPreviewElement = null;
+        this.draggedElement = null; // Add this to store reference to dragged element
+        this.dragOffset = { x: 0, y: 0 };
         
         // View controls
         this.scale = 1;
@@ -164,6 +172,7 @@ class GridFamilyTree {
     // UI CREATION AND MANAGEMENT
     // ===========================================
     
+    // Add relationship creation controls to your UI
     createTreeContainer() {
         const container = document.getElementById(this.containerId);
         if (!container) return;
@@ -187,44 +196,64 @@ class GridFamilyTree {
                     
                     <g id="gridOverlay"></g>
                     <g id="connections"></g>
+                    <g id="connectionPreview"></g>
                     <g id="people"></g>
                 </svg>
             </div>
             
             <!-- Tree Controls -->
-            <div class="grid-tree-controls">
-                <!-- View Controls (Hidden in Edit Mode) -->
-                <div id="viewControls" class="control-group">
+            <div class="tree-controls">
+                <!-- View Controls -->
+                <div id="viewControls" class="zoom-controls">
                     <button id="zoomOut" class="control-btn">-</button>
                     <span id="zoomLevel">100%</span>
                     <button id="zoomIn" class="control-btn">+</button>
-                    <button id="centerTree" class="large-btn">🎯 Center</button>
                 </div>
+                <button id="centerTreeBtn">🎯 Center Tree</button>
                 
-                <!-- Edit Controls (Owner Only) -->
+                <!-- Edit Controls -->
                 <div id="editControls" class="control-group" style="display: none;">
-                    <button id="toggleEditMode" class="large-btn edit-btn">✏️ Edit Tree</button>
+                    <button id="toggleEditMode" class="btn primary" style="width: 100%;">✏️ Edit Tree</button>
                 </div>
                 
-                <!-- Grid Size Controls (Edit Mode Only) -->
-                <div id="gridSizeControls" class="control-group grid-controls" style="display: none;">
-                    <div class="grid-control-row">
+                <!-- Connection Tools (Edit Mode Only) -->
+                <div id="connectionControls" class="connection-tools" style="display: none;">
+                    <button id="connectSpouse" class="connection-btn spouse-btn" title="Connect Spouses">💑 Spouse</button>
+                    <button id="connectParent" class="connection-btn parent-btn" title="Connect Parent & Child">👨‍👧‍👦 Parent</button>
+                    <button id="cancelConnection" class="connection-btn cancel-btn" title="Cancel Connection" style="display: none;">❌ Cancel</button>
+                </div>
+                
+                <!-- Grid Size Controls -->
+                <div id="gridSizeControls" class="grid-controls" style="display: none;">
+                    <div class="grid-control-group">
                         <label>Generations: <span id="gridRowsValue">${this.gridRows}</span></label>
-                        <button id="gridRowsDown" class="small-btn">-</button>
-                        <button id="gridRowsUp" class="small-btn">+</button>
+                        <div>
+                            <button id="gridRowsDown" class="grid-btn">-</button>
+                            <button id="gridRowsUp" class="grid-btn">+</button>
+                        </div>
                     </div>
-                    <div class="grid-control-row">
+                    <div class="grid-control-group">
                         <label>Positions: <span id="gridColsValue">${this.gridCols}</span></label>
-                        <button id="gridColsDown" class="small-btn">-</button>
-                        <button id="gridColsUp" class="small-btn">+</button>
+                        <div>
+                            <button id="gridColsDown" class="grid-btn">-</button>
+                            <button id="gridColsUp" class="grid-btn">+</button>
+                        </div>
                     </div>
                 </div>
+            </div>
+            
+            <!-- Connection Status Message -->
+            <div id="connectionStatus" class="connection-status" style="display: none;">
+                <span id="connectionMessage">Click first person to connect</span>
             </div>
             
             <!-- Context Menu -->
             <div id="contextMenu" class="context-menu" style="display: none;">
                 <div class="context-item" data-action="viewStories">📖 View Stories</div>
                 <div class="context-item" data-action="addStory">✍️ Add Story</div>
+                <div class="context-separator"></div>
+                <div class="context-item" data-action="connectSpouse">💕 Connect as Spouse</div>
+                <div class="context-item" data-action="connectParent">👶 Connect as Parent</div>
                 <div class="context-separator"></div>
                 <div class="context-item" data-action="addSpouse">💕 Add Spouse</div>
                 <div class="context-item" data-action="addChild">👶 Add Child</div>
@@ -263,8 +292,8 @@ class GridFamilyTree {
         const editButton = document.getElementById('toggleEditMode');
         const gridControls = document.getElementById('gridSizeControls');
         const viewControls = document.getElementById('viewControls');
+        const connectionControls = document.getElementById('connectionControls');
         const canvas = document.querySelector('.grid-tree-canvas');
-        const svg = document.getElementById('gridTreeSVG');
         
         if (editButton) {
             editButton.textContent = this.isEditMode ? '👁️ View Mode' : '✏️ Edit Tree';
@@ -275,7 +304,10 @@ class GridFamilyTree {
             gridControls.style.display = this.isEditMode ? 'flex' : 'none';
         }
         
-        // Hide/show zoom controls in edit mode
+        if (connectionControls) {
+            connectionControls.style.display = this.isEditMode ? 'flex' : 'none';
+        }
+        
         if (viewControls) {
             viewControls.style.display = this.isEditMode ? 'none' : 'flex';
         }
@@ -284,16 +316,9 @@ class GridFamilyTree {
             canvas.classList.toggle('edit-mode', this.isEditMode);
         }
         
-        if (svg) {
-            if (this.isEditMode) {
-                // Reset transform and enable scrolling for edit mode
-                this.resetViewForEditMode();
-                this.enableGridScrolling();
-            } else {
-                // Re-enable pan/zoom for view mode
-                this.disableGridScrolling();
-                this.enablePanZoom();
-            }
+        // Cancel any active connections when leaving edit mode
+        if (!this.isEditMode && this.isConnecting) {
+            this.cancelConnection();
         }
     }
     
@@ -537,7 +562,8 @@ class GridFamilyTree {
         });
         
         // Drag and drop handlers (edit mode only)
-        if (this.isEditMode) {
+        // Drag and drop handlers (edit mode only, but not during connection)
+        if (this.isEditMode && !this.isConnecting) {
             this.setupPersonDragAndDrop(group, person);
         }
         
@@ -709,6 +735,19 @@ class GridFamilyTree {
             this.toggleEditMode();
         });
         
+        // Connection controls
+        document.getElementById('connectSpouse')?.addEventListener('click', () => {
+            this.startConnection('spouse');
+        });
+        
+        document.getElementById('connectParent')?.addEventListener('click', () => {
+            this.startConnection('parent');
+        });
+        
+        document.getElementById('cancelConnection')?.addEventListener('click', () => {
+            this.cancelConnection();
+        });
+        
         // Grid size controls
         document.getElementById('gridRowsUp')?.addEventListener('click', () => {
             this.adjustGridSize(this.gridRows + 1, this.gridCols);
@@ -725,13 +764,74 @@ class GridFamilyTree {
         document.getElementById('gridColsDown')?.addEventListener('click', () => {
             this.adjustGridSize(this.gridRows, this.gridCols - 1);
         });
+
+
         
         // Reset grid view button
         document.getElementById('resetGridView')?.addEventListener('click', () => {
             this.resetViewForEditMode();
         });
     }
+
+    startConnection(type) {
+        console.log(`🔗 Starting connection mode: ${type}`);
+        
+        this.isConnecting = true;
+        this.connectionMode = type;
+        this.firstPersonSelected = null;
+        
+        // Update UI
+        this.updateConnectionUI();
+        
+        // Show status message
+        this.showConnectionStatus(`Click first person to connect as ${type === 'spouse' ? 'spouses' : 'parent & child'}`);
+        
+        // Highlight all people as selectable
+        this.highlightSelectablePeople();
+        
+        // Re-render to update drag/drop behavior
+        this.renderPeople();
+    }
     
+    cancelConnection() {
+        console.log('❌ Canceling connection mode');
+        
+        this.isConnecting = false;
+        this.connectionMode = null;
+        this.firstPersonSelected = null;
+        
+        // Clear preview line
+        this.clearConnectionPreview();
+        
+        // Update UI
+        this.updateConnectionUI();
+        
+        // Hide status message
+        this.hideConnectionStatus();
+        
+        // Remove highlights
+        this.clearPersonHighlights();
+        
+        // Re-render to restore drag/drop behavior
+        this.renderPeople();
+    }
+
+    updateConnectionUI() {
+        const spouseBtn = document.getElementById('connectSpouse');
+        const parentBtn = document.getElementById('connectParent');
+        const cancelBtn = document.getElementById('cancelConnection');
+        
+        if (spouseBtn) spouseBtn.classList.toggle('active', this.connectionMode === 'spouse');
+        if (parentBtn) parentBtn.classList.toggle('active', this.connectionMode === 'parent');
+        if (cancelBtn) cancelBtn.style.display = this.isConnecting ? 'block' : 'none';
+        
+        // Change cursor style when in connection mode
+        const canvas = document.querySelector('.grid-tree-canvas');
+        if (canvas) {
+            canvas.classList.toggle('connecting', this.isConnecting);
+        }
+    }
+
     setupTreeInteractions() {
         const svg = document.getElementById('gridTreeSVG');
         if (!svg) return;
@@ -813,15 +913,26 @@ class GridFamilyTree {
     // DRAG AND DROP FUNCTIONALITY
     // ===========================================
     
+    // Setup person drag and drop (only when not connecting)
     setupPersonDragAndDrop(personElement, person) {
+        // Don't setup drag if we're in connection mode
+        if (this.isConnecting) {
+            personElement.style.cursor = 'pointer';
+            return;
+        }
+        
         personElement.style.cursor = 'move';
         
-        // Use mouse events instead of HTML5 drag/drop for better SVG compatibility
+        // Use mouse events for drag and drop
         personElement.addEventListener('mousedown', (e) => {
-            this.handleMouseDown(e, person);
+            // Only allow dragging if not in connection mode
+            if (!this.isConnecting) {
+                this.handleMouseDown(e, person);
+            }
         });
     }
     
+    // Simple and clean handleMouseDown
     handleMouseDown(e, person) {
         // Only allow left mouse button
         if (e.button !== 0) return;
@@ -835,10 +946,15 @@ class GridFamilyTree {
         this.draggedPerson = person;
         this.dragStartPos = { row: person.grid_row, col: person.grid_col };
         
-        // Style the dragged element
-        e.currentTarget.style.opacity = '0.7';
-        e.currentTarget.style.transform = 'scale(0.9)';
-        e.currentTarget.style.zIndex = '1000';
+        // No offset needed - ghost will be centered on cursor
+        this.dragOffset = { x: 0, y: 0 };
+        
+        // Create ghost image
+        this.createGhostElement(person, e.currentTarget);
+        
+        // Style original element to show it's being dragged
+        e.currentTarget.style.opacity = '0.5';
+        e.currentTarget.style.filter = 'grayscale(1)';
         
         // Show drop zones
         this.showDropZones();
@@ -847,14 +963,122 @@ class GridFamilyTree {
         document.addEventListener('mousemove', this.handleMouseMove.bind(this));
         document.addEventListener('mouseup', this.handleMouseUp.bind(this));
         
-        // Change cursor
-        document.body.style.cursor = 'grabbing';
+        // Hide cursor since ghost replaces it
+        document.body.style.cursor = 'none';
         
-        console.log('🎯 Mouse drag initialized, drop zones visible');
+        console.log('🎯 Ghost drag initialized');
     }
-    
+
+    // Create a ghost element that follows the mouse
+    createGhostElement(person, originalElement) {
+        // Create ghost container
+        this.ghostElement = document.createElement('div');
+        this.ghostElement.className = 'drag-ghost';
+        
+        // Style the ghost
+        this.ghostElement.style.cssText = `
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            transform-origin: center center;
+            transform: scale(0.8);
+            opacity: 0.8;
+            filter: drop-shadow(0 8px 16px rgba(0,0,0,0.3));
+            background: white;
+            border-radius: 50%;
+            padding: 5px;
+            border: 3px solid #4CAF50;
+            width: 70px;
+            height: 70px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-family: Arial, sans-serif;
+            animation: ghostBounce 0.3s ease-out;
+        `;
+        
+        // Create ghost content (simplified version of the person node)
+        const coords = this.gridToPixelCoordinates(person.grid_row, person.grid_col);
+        
+        // Person circle (as CSS background instead of SVG)
+        const circle = document.createElement('div');
+        circle.style.cssText = `
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #90EE90, #228B22);
+            border: 2px solid #228B22;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: white;
+            font-weight: bold;
+            margin-bottom: 2px;
+        `;
+        
+        // Add initials or emoji to the circle
+        const initials = `${person.first_name[0]}${(person.last_name && person.last_name[0]) || ''}`;
+        circle.textContent = initials;
+        
+        // Person name
+        const nameLabel = document.createElement('div');
+        nameLabel.style.cssText = `
+            font-size: 9px;
+            font-weight: bold;
+            color: #2F4F2F;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 60px;
+        `;
+        nameLabel.textContent = `${person.first_name}`;
+        
+        // Add story indicator if needed
+        if (person.story_count > 0) {
+            const indicator = document.createElement('div');
+            indicator.style.cssText = `
+                position: absolute;
+                top: -5px;
+                right: -5px;
+                width: 16px;
+                height: 16px;
+                background: #FFD700;
+                border: 2px solid #FFA500;
+                border-radius: 50%;
+                font-size: 8px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+            `;
+            indicator.textContent = '📖';
+            this.ghostElement.appendChild(indicator);
+        }
+        
+        this.ghostElement.appendChild(circle);
+        this.ghostElement.appendChild(nameLabel);
+        
+        // Add to body
+        document.body.appendChild(this.ghostElement);
+        
+        console.log('👻 Ghost element created');
+    }
+
+    // Simple mouse move - center ghost on cursor
     handleMouseMove(e) {
-        if (!this.isDragging) return;
+        if (!this.isDragging || !this.ghostElement) return;
+        
+        // Center ghost directly on mouse cursor
+        const ghostWidth = 70; // Width of ghost element
+        const ghostHeight = 70; // Height of ghost element
+        
+        const newX = e.clientX - (ghostWidth / 2);
+        const newY = e.clientY - (ghostHeight / 2);
+        
+        this.ghostElement.style.left = newX + 'px';
+        this.ghostElement.style.top = newY + 'px';
         
         // Find what element we're over
         const elementBelow = document.elementFromPoint(e.clientX, e.clientY);
@@ -867,12 +1091,22 @@ class GridFamilyTree {
         // Check if we're over a drop zone
         if (elementBelow && elementBelow.classList.contains('grid-click-area')) {
             elementBelow.classList.add('drop-zone-hover');
-            document.body.style.cursor = 'copy';
+            
+            // Add visual feedback to ghost - make it green when over valid drop zone
+            this.ghostElement.style.transform = 'scale(0.9)';
+            this.ghostElement.style.filter = 'drop-shadow(0 8px 16px rgba(76,175,80,0.5))';
+            this.ghostElement.style.borderColor = '#4CAF50';
+            this.ghostElement.style.background = 'rgba(76,175,80,0.1)';
         } else {
-            document.body.style.cursor = 'no-drop';
+            // Reset ghost visual feedback - red when not over valid drop zone
+            this.ghostElement.style.transform = 'scale(0.8)';
+            this.ghostElement.style.filter = 'drop-shadow(0 8px 16px rgba(220,53,69,0.5))';
+            this.ghostElement.style.borderColor = '#dc3545';
+            this.ghostElement.style.background = 'rgba(220,53,69,0.1)';
         }
     }
-    
+
+    // Clean handleMouseUp
     handleMouseUp(e) {
         console.log('🖱️ MOUSE UP: Ending drag');
         
@@ -904,13 +1138,8 @@ class GridFamilyTree {
         
         this.endDrag();
     }
-    
-    revertDrag() {
-        // Just re-render to put person back in original position
-        this.renderTree();
-        this.showErrorMessage('Cannot drop there - position is occupied or invalid');
-    }
-    
+
+    // Simple cleanup
     endDrag() {
         console.log('🧹 CLEANING UP DRAG');
         
@@ -918,26 +1147,49 @@ class GridFamilyTree {
         document.removeEventListener('mousemove', this.handleMouseMove);
         document.removeEventListener('mouseup', this.handleMouseUp);
         
-        // Reset cursor
+        // Restore cursor
         document.body.style.cursor = 'default';
+        document.body.classList.remove('dragging');
+        
+        // Remove ghost element
+        if (this.ghostElement) {
+            // Add fade out animation
+            this.ghostElement.style.transition = 'all 0.2s ease-out';
+            this.ghostElement.style.opacity = '0';
+            this.ghostElement.style.transform = 'scale(0.5)';
+            
+            setTimeout(() => {
+                if (this.ghostElement && this.ghostElement.parentNode) {
+                    this.ghostElement.parentNode.removeChild(this.ghostElement);
+                }
+                this.ghostElement = null;
+            }, 200);
+        }
+        
+        // Reset original element styling
+        document.querySelectorAll('.person-node').forEach(node => {
+            node.style.opacity = '1';
+            node.style.filter = 'none';
+        });
         
         // Reset drag state
         this.isDragging = false;
         this.draggedPerson = null;
         this.dragStartPos = null;
+        this.dragOffset = { x: 0, y: 0 };
         
-        // Hide drop zones and reset styles
+        // Hide drop zones
         this.hideDropZones();
-        
-        // Reset any dragged element styles
-        document.querySelectorAll('.person-node').forEach(node => {
-            node.style.opacity = '1';
-            node.style.transform = 'scale(1)';
-            node.style.zIndex = 'auto';
-        });
         
         console.log('✅ Drag cleanup complete');
     }
+
+    // Simple revert
+    revertDrag() {
+        // Show error message
+        this.showErrorMessage('Cannot drop there - position is occupied or invalid');
+    }
+
     
     showDropZones() {
         console.log('🎯 SHOWING DROP ZONES');
@@ -1050,14 +1302,208 @@ class GridFamilyTree {
     }
     
     handlePersonClick(personId, event) {
-        // Don't show context menu in edit mode - we want to enable dragging
-        if (this.isEditMode) {
-            console.log('Edit mode: skipping context menu for drag functionality');
+        if (this.isConnecting) {
+            this.handleConnectionClick(personId, event);
             return;
         }
         
-        this.selectedPerson = personId;
-        this.showContextMenu(event);
+        // Normal person click behavior (context menu, etc.)
+        if (!this.isEditMode) {
+            this.selectedPerson = personId;
+            this.showContextMenu(event);
+        }
+    }
+
+    handleConnectionClick(personId, event) {
+        const person = this.people.find(p => p.id === personId);
+        if (!person) return;
+        
+        if (!this.firstPersonSelected) {
+            // Select first person
+            this.firstPersonSelected = person;
+            console.log(`👤 First person selected: ${person.first_name}`);
+            
+            // Highlight selected person
+            this.highlightSelectedPerson(personId);
+            
+            // Update status message
+            this.showConnectionStatus(`Click second person to connect with ${person.first_name}`);
+            
+            // Start showing preview line
+            this.startConnectionPreview(person);
+            
+        } else if (this.firstPersonSelected.id === personId) {
+            // Clicked same person - deselect
+            this.firstPersonSelected = null;
+            this.clearConnectionPreview();
+            this.clearPersonHighlights();
+            this.highlightSelectablePeople();
+            this.showConnectionStatus(`Click first person to connect as ${this.connectionMode === 'spouse' ? 'spouses' : 'parent & child'}`);
+            
+        } else {
+            // Select second person - create connection
+            console.log(`👥 Connecting ${this.firstPersonSelected.first_name} with ${person.first_name}`);
+            this.createConnection(this.firstPersonSelected, person);
+        }
+    }
+
+    // Create the relationship connection
+    async createConnection(person1, person2) {
+        try {
+            // Validate the connection
+            const validation = this.validateConnection(person1, person2, this.connectionMode);
+            if (!validation.valid) {
+                this.showErrorMessage(validation.message);
+                return;
+            }
+            
+            // Create the relationship
+            console.log(`Creating ${this.connectionMode} relationship between ${person1.first_name} and ${person2.first_name}`);
+            
+            await this.createRelationship(person1.id, person2.id, this.connectionMode);
+            
+            // Success!
+            this.showSuccessMessage(`${person1.first_name} and ${person2.first_name} connected as ${this.connectionMode === 'spouse' ? 'spouses' : 'parent & child'}!`);
+            
+            // Refresh the tree
+            await this.loadTreeData();
+            this.renderTree();
+            
+            // Reset connection mode
+            this.cancelConnection();
+            
+        } catch (error) {
+            console.error('Error creating connection:', error);
+            this.showErrorMessage('Failed to create connection: ' + error.message);
+        }
+    }
+
+    // Validate if a connection is allowed
+    validateConnection(person1, person2, type) {
+        // Check if relationship already exists
+        const existingRel = this.relationships.find(rel => 
+            rel.relationship_type === type &&
+            ((rel.person1_id === person1.id && rel.person2_id === person2.id) ||
+            (rel.person1_id === person2.id && rel.person2_id === person1.id))
+        );
+        
+        if (existingRel) {
+            return { valid: false, message: `${person1.first_name} and ${person2.first_name} are already connected as ${type}s` };
+        }
+        
+        if (type === 'spouse') {
+            // Check if either person already has a spouse
+            const person1Spouse = this.getSpouse(person1.id);
+            const person2Spouse = this.getSpouse(person2.id);
+            
+            if (person1Spouse) {
+                return { valid: false, message: `${person1.first_name} is already married to ${person1Spouse.first_name}` };
+            }
+            
+            if (person2Spouse) {
+                return { valid: false, message: `${person2.first_name} is already married to ${person2Spouse.first_name}` };
+            }
+        }
+        
+        if (type === 'parent') {
+            // Could add more validation here (age checks, etc.)
+        }
+        
+        return { valid: true };
+    }
+
+    // Visual feedback functions
+    highlightSelectablePeople() {
+        document.querySelectorAll('.person-node').forEach(node => {
+            node.classList.add('selectable');
+        });
+    }
+
+    highlightSelectedPerson(personId) {
+        this.clearPersonHighlights();
+        document.querySelectorAll('.person-node').forEach(node => {
+            if (node.dataset.personId === personId.toString()) {
+                node.classList.add('selected');
+            } else {
+                node.classList.add('selectable');
+            }
+        });
+    }
+
+    clearPersonHighlights() {
+        document.querySelectorAll('.person-node').forEach(node => {
+            node.classList.remove('selectable', 'selected');
+        });
+    }
+
+    // Connection preview (line that follows mouse)
+    startConnectionPreview(person) {
+        const coords = this.gridToPixelCoordinates(person.grid_row, person.grid_col);
+        this.connectionPreviewStart = coords;
+        
+        // Add mouse move listener for preview
+        document.addEventListener('mousemove', this.updateConnectionPreview.bind(this));
+    }
+
+    updateConnectionPreview(e) {
+        if (!this.isConnecting || !this.firstPersonSelected) return;
+        
+        const svg = document.getElementById('gridTreeSVG');
+        const svgRect = svg.getBoundingClientRect();
+        
+        const mouseX = e.clientX - svgRect.left;
+        const mouseY = e.clientY - svgRect.top;
+        
+        this.drawConnectionPreview(this.connectionPreviewStart, { x: mouseX, y: mouseY });
+    }
+
+    drawConnectionPreview(start, end) {
+        const container = document.getElementById('connectionPreview');
+        if (!container) return;
+        
+        const color = this.connectionMode === 'spouse' ? '#DC143C' : '#8B4513';
+        const strokeWidth = this.connectionMode === 'spouse' ? '4' : '3';
+        
+        container.innerHTML = `
+            <line x1="${start.x}" y1="${start.y}" x2="${end.x}" y2="${end.y}" 
+                stroke="${color}" stroke-width="${strokeWidth}" 
+                stroke-dasharray="5,5" opacity="0.7"/>
+        `;
+    }
+
+    clearConnectionPreview() {
+        const container = document.getElementById('connectionPreview');
+        if (container) container.innerHTML = '';
+        
+        document.removeEventListener('mousemove', this.updateConnectionPreview.bind(this));
+    }
+
+    // Status message functions
+    showConnectionStatus(message) {
+        const status = document.getElementById('connectionStatus');
+        const messageEl = document.getElementById('connectionMessage');
+        
+        if (status && messageEl) {
+            messageEl.textContent = message;
+            status.style.display = 'block';
+        }
+    }
+
+    hideConnectionStatus() {
+        const status = document.getElementById('connectionStatus');
+        if (status) {
+            status.style.display = 'none';
+        }
+    }
+
+    startConnectionFromContext(type) {
+        // Start connection mode with first person already selected
+        this.startConnection(type);
+        this.firstPersonSelected = this.people.find(p => p.id === this.selectedPerson);
+        this.highlightSelectedPerson(this.selectedPerson);
+        this.showConnectionStatus(`Click second person to connect with ${this.firstPersonSelected.first_name}`);
+        this.startConnectionPreview(this.firstPersonSelected);
+        this.hideContextMenu();
     }
     
     handleGridClick(row, col) {
@@ -1098,6 +1544,12 @@ class GridFamilyTree {
         console.log(`Context menu action: ${action} for person ${this.selectedPerson}`);
         
         switch (action) {
+            case 'connectSpouse':
+                this.startConnectionFromContext('spouse');
+                break;
+            case 'connectParent':
+                this.startConnectionFromContext('parent');
+                break;
             case 'viewStories':
                 this.openPersonModal(this.selectedPerson);
                 break;
@@ -1444,376 +1896,6 @@ class GridFamilyTree {
     }
 }
 
-// ===========================================
-// CSS STYLES FOR GRID TREE
-// ===========================================
-
-const gridTreeStyles = `
-    .grid-tree-canvas {
-        width: 100%;
-        height: 100vh;
-        position: relative;
-        cursor: grab;
-        background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
-        border-radius: 15px;
-        overflow: hidden;
-    }
-    
-    .grid-tree-canvas:active {
-        cursor: grabbing;
-    }
-    
-    .grid-tree-canvas.edit-mode {
-        border: 3px dashed #4CAF50;
-        background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #90EE90 100%),
-                    repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px);
-        overflow: auto;
-        cursor: default;
-    }
-    
-    /* Scroll indicators for edit mode */
-    .grid-tree-canvas.edit-mode.scrollable-x::after {
-        content: "← Scroll horizontally →";
-        position: absolute;
-        bottom: 10px;
-        left: 50%;
-        transform: translateX(-50%);
-        background: rgba(0,0,0,0.7);
-        color: white;
-        padding: 5px 15px;
-        border-radius: 15px;
-        font-size: 12px;
-        pointer-events: none;
-        z-index: 10;
-    }
-    
-    .grid-tree-canvas.edit-mode.scrollable-y::before {
-        content: "↑ Scroll vertically ↓";
-        position: absolute;
-        top: 50%;
-        right: 10px;
-        transform: translateY(-50%) rotate(90deg);
-        background: rgba(0,0,0,0.7);
-        color: white;
-        padding: 5px 15px;
-        border-radius: 15px;
-        font-size: 12px;
-        pointer-events: none;
-        z-index: 10;
-        transform-origin: center;
-    }
-    
-    .grid-tree-controls {
-        position: absolute;
-        bottom: 20px;
-        right: 20px;
-        display: flex;
-        flex-direction: column;
-        gap: 15px;
-        background: rgba(255,255,255,0.95);
-        padding: 20px;
-        border-radius: 20px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        backdrop-filter: blur(10px);
-        min-width: 200px;
-    }
-    
-    .control-group {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        justify-content: center;
-    }
-    
-    .control-btn {
-        width: 40px;
-        height: 40px;
-        border: none;
-        border-radius: 50%;
-        background: linear-gradient(45deg, #4CAF50, #2E7D32);
-        color: white;
-        font-size: 16px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(76,175,80,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-    
-    .control-btn:hover {
-        background: linear-gradient(45deg, #45a049, #1B5E20);
-        transform: scale(1.1);
-        box-shadow: 0 6px 18px rgba(76,175,80,0.4);
-    }
-    
-    .control-btn.edit-btn {
-        background: linear-gradient(45deg, #FF9800, #F57C00);
-        box-shadow: 0 4px 12px rgba(255,152,0,0.3);
-    }
-    
-    .control-btn.edit-btn.active {
-        background: linear-gradient(45deg, #2196F3, #1976D2);
-        box-shadow: 0 4px 12px rgba(33,150,243,0.3);
-    }
-    
-    .control-btn.edit-btn:hover {
-        background: linear-gradient(45deg, #FB8C00, #E65100);
-        box-shadow: 0 6px 18px rgba(255,152,0,0.4);
-    }
-    
-    .large-btn {
-        min-width: 120px;
-        height: 45px;
-        border: none;
-        border-radius: 12px;
-        background: linear-gradient(45deg, #4CAF50, #2E7D32);
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 12px rgba(76,175,80,0.3);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0 15px;
-        white-space: nowrap;
-    }
-    
-    .large-btn:hover {
-        background: linear-gradient(45deg, #45a049, #1B5E20);
-        transform: translateY(-2px);
-        box-shadow: 0 6px 18px rgba(76,175,80,0.4);
-    }
-    
-    .large-btn.edit-btn {
-        background: linear-gradient(45deg, #FF9800, #F57C00);
-        box-shadow: 0 4px 12px rgba(255,152,0,0.3);
-        min-width: 140px;
-    }
-    
-    .large-btn.edit-btn.active {
-        background: linear-gradient(45deg, #2196F3, #1976D2);
-        box-shadow: 0 4px 12px rgba(33,150,243,0.3);
-    }
-    
-    .large-btn.edit-btn:hover {
-        background: linear-gradient(45deg, #FB8C00, #E65100);
-        box-shadow: 0 6px 18px rgba(255,152,0,0.4);
-    }
-    
-    .large-btn.edit-btn.active:hover {
-        background: linear-gradient(45deg, #1E88E5, #1565C0);
-        box-shadow: 0 6px 18px rgba(33,150,243,0.4);
-    }
-    
-    .reset-btn {
-        width: 100%;
-        height: 40px;
-        border: none;
-        border-radius: 10px;
-        background: linear-gradient(45deg, #9C27B0, #7B1FA2);
-        color: white;
-        font-size: 13px;
-        font-weight: bold;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        margin-top: 10px;
-    }
-    
-    .reset-btn:hover {
-        background: linear-gradient(45deg, #AB47BC, #8E24AA);
-        transform: translateY(-1px);
-    }
-    
-    #zoomLevel {
-        font-size: 14px;
-        font-weight: bold;
-        color: #2E7D32;
-        min-width: 60px;
-        text-align: center;
-        padding: 8px;
-        background: rgba(255,255,255,0.8);
-        border-radius: 12px;
-        border: 2px solid rgba(46,125,50,0.2);
-    }
-    
-    .grid-controls {
-        flex-direction: column;
-        width: 100%;
-        gap: 10px;
-        padding: 15px;
-        background: rgba(76,175,80,0.1);
-        border-radius: 15px;
-        border: 2px solid rgba(76,175,80,0.2);
-    }
-    
-    .grid-control-row {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        font-size: 12px;
-        font-weight: bold;
-        color: #2E7D32;
-    }
-    
-    .small-btn {
-        width: 25px;
-        height: 25px;
-        border: none;
-        border-radius: 50%;
-        background: #4CAF50;
-        color: white;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        margin: 0 2px;
-        transition: all 0.3s ease;
-    }
-    
-    .small-btn:hover {
-        background: #45a049;
-        transform: scale(1.1);
-    }
-    
-    .person-node {
-        transition: all 0.3s ease;
-    }
-    
-    .person-node:hover {
-        filter: brightness(1.1) drop-shadow(0 0 8px rgba(46,125,50,0.6));
-    }
-    
-    .person-node[draggable="true"] {
-        cursor: move;
-    }
-    
-    .person-node[draggable="true"]:hover {
-        transform: scale(1.05);
-        filter: brightness(1.2) drop-shadow(0 0 12px rgba(46,125,50,0.8));
-        transform-origin: center center; /* Keep scaling centered */
-    }
-    
-    .grid-spot {
-        transition: all 0.3s ease;
-    }
-    
-    .grid-spot:hover {
-        fill: rgba(46,125,50,0.8);
-        r: 12;
-        opacity: 1;
-        cursor: pointer;
-    }
-    
-    /* Drag and drop styles */
-    .drop-zone-active {
-        fill: rgba(33,150,243,0.4);
-        stroke: #2196F3;
-        stroke-width: 3;
-        r: 15;
-        opacity: 1;
-        animation: dropZonePulse 1.5s infinite;
-    }
-    
-    .drop-zone-hover {
-        fill: rgba(76,175,80,0.8);
-        stroke: #4CAF50;
-        stroke-width: 4;
-        r: 18;
-        opacity: 1;
-    }
-    
-    @keyframes dropZonePulse {
-        0%, 100% { 
-            r: 15;
-            opacity: 0.6;
-        }
-        50% { 
-            r: 18;
-            opacity: 1;
-        }
-    }
-    
-    .context-menu {
-        position: fixed;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        border: 1px solid #ddd;
-        padding: 8px 0;
-        z-index: 1000;
-        min-width: 180px;
-        backdrop-filter: blur(10px);
-    }
-    
-    .context-item {
-        padding: 12px 20px;
-        cursor: pointer;
-        transition: background 0.2s ease;
-        font-size: 14px;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        color: #333;
-    }
-    
-    .context-item:hover {
-        background: linear-gradient(90deg, #f0f8ff, #e8f4f8);
-        color: #2E7D32;
-    }
-    
-    .context-separator {
-        height: 1px;
-        background: linear-gradient(90deg, transparent, #e0e0e0, transparent);
-        margin: 8px 0;
-    }
-    
-    @keyframes slideIn {
-        from {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(0);
-            opacity: 1;
-        }
-    }
-    
-    .success-message {
-        animation: slideIn 0.3s ease-out;
-    }
-    
-    @media (max-width: 768px) {
-        .grid-tree-controls {
-            bottom: 10px;
-            right: 10px;
-            left: 10px;
-            min-width: auto;
-            padding: 15px;
-        }
-        
-        .control-group {
-            justify-content: space-around;
-        }
-        
-        .grid-controls {
-            flex-direction: row;
-            justify-content: space-between;
-        }
-        
-        .grid-control-row {
-            flex-direction: column;
-            gap: 5px;
-        }
-    }
-`;
-
-// Add styles to document
-const gridStyleSheet = document.createElement('style');
-gridStyleSheet.textContent = gridTreeStyles;
-document.head.appendChild(gridStyleSheet);
 
 // ===========================================
 // INITIALIZATION

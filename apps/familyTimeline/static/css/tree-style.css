@@ -1325,3 +1325,263 @@ textarea {
         justify-content: space-around;
     }
 }
+
+@keyframes ghostBounce {
+    0% {
+        transform: scale(0.5) translateY(-10px);
+        opacity: 0;
+    }
+    60% {
+        transform: scale(0.9) translateY(2px);
+        opacity: 0.9;
+    }
+    100% {
+        transform: scale(0.8) translateY(0);
+        opacity: 0.9;
+    }
+}
+
+.drag-ghost {
+    transition: transform 0.1s ease-out, filter 0.1s ease-out, border-color 0.2s ease-out, background 0.2s ease-out;
+    /* Ensure ghost stays centered on cursor */
+    transform-origin: center center;
+}
+
+/* Enhanced drop zone feedback */
+.drop-zone-active {
+    animation: dropZonePulse 1s infinite ease-in-out;
+}
+
+.drop-zone-hover {
+    animation: dropZoneHover 0.3s ease-out forwards;
+}
+
+@keyframes dropZoneHover {
+    0% {
+        r: 15;
+        fill: rgba(33,150,243,0.4);
+    }
+    100% {
+        r: 20;
+        fill: rgba(76,175,80,0.8);
+    }
+}
+
+/* Hide regular cursor when dragging */
+body.dragging {
+    cursor: none !important;
+}
+
+body.dragging * {
+    cursor: none !important;
+}
+
+
+.connection-tools {
+    flex-direction: row;
+    justify-content: space-between;
+    background: rgba(33,150,243,0.1);
+    border-radius: 15px;
+    border: 2px solid rgba(33,150,243,0.2);
+    padding: 10px;
+    gap: 8px;
+}
+
+.connection-btn {
+    min-width: 80px;
+    height: 40px;
+    border: none;
+    border-radius: 10px;
+    color: white;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 8px;
+    white-space: nowrap;
+}
+
+.spouse-btn {
+    background: linear-gradient(45deg, #E91E63, #C2185B);
+    box-shadow: 0 4px 12px rgba(233,30,99,0.3);
+}
+
+.spouse-btn:hover {
+    background: linear-gradient(45deg, #F06292, #E91E63);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(233,30,99,0.4);
+}
+
+.spouse-btn.active {
+    background: linear-gradient(45deg, #AD1457, #880E4F);
+    box-shadow: 0 6px 18px rgba(233,30,99,0.6);
+    transform: scale(1.05);
+}
+
+.parent-btn {
+    background: linear-gradient(45deg, #795548, #5D4037);
+    box-shadow: 0 4px 12px rgba(121,85,72,0.3);
+}
+
+.parent-btn:hover {
+    background: linear-gradient(45deg, #8D6E63, #795548);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(121,85,72,0.4);
+}
+
+.parent-btn.active {
+    background: linear-gradient(45deg, #4E342E, #3E2723);
+    box-shadow: 0 6px 18px rgba(121,85,72,0.6);
+    transform: scale(1.05);
+}
+
+.cancel-btn {
+    background: linear-gradient(45deg, #F44336, #D32F2F);
+    box-shadow: 0 4px 12px rgba(244,67,54,0.3);
+}
+
+.cancel-btn:hover {
+    background: linear-gradient(45deg, #EF5350, #F44336);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(244,67,54,0.4);
+}
+
+/* Connection Status Message */
+.connection-status {
+    position: fixed;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #2196F3, #1976D2);
+    color: white;
+    padding: 12px 24px;
+    border-radius: 25px;
+    box-shadow: 0 4px 12px rgba(33,150,243,0.3);
+    font-weight: bold;
+    font-size: 14px;
+    z-index: 1000;
+    animation: statusSlideDown 0.3s ease-out;
+}
+
+@keyframes statusSlideDown {
+    from {
+        transform: translateX(-50%) translateY(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(-50%) translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Person Node States During Connection */
+.person-node.selectable {
+    cursor: pointer !important; /* Override the move cursor */
+    animation: selectablePulse 2s infinite ease-in-out;
+}
+
+.person-node.selectable:hover {
+    transform: scale(1.1);
+    filter: brightness(1.3) drop-shadow(0 0 15px rgba(33,150,243,0.8));
+}
+
+.person-node.selected {
+    cursor: pointer !important; /* Override the move cursor */
+    transform: scale(1.15);
+    filter: brightness(1.4) drop-shadow(0 0 20px rgba(255,193,7,1));
+    animation: selectedGlow 1.5s infinite ease-in-out;
+}
+
+@keyframes selectablePulse {
+    0%, 100% {
+        filter: brightness(1) drop-shadow(0 0 8px rgba(33,150,243,0.4));
+    }
+    50% {
+        filter: brightness(1.2) drop-shadow(0 0 12px rgba(33,150,243,0.8));
+    }
+}
+
+@keyframes selectedGlow {
+    0%, 100% {
+        filter: brightness(1.4) drop-shadow(0 0 20px rgba(255,193,7,0.8));
+    }
+    50% {
+        filter: brightness(1.6) drop-shadow(0 0 25px rgba(255,193,7,1));
+    }
+}
+
+/* Canvas state during connection */
+.grid-tree-canvas.connecting {
+    cursor: crosshair;
+}
+
+.grid-tree-canvas.connecting .person-node {
+    cursor: pointer !important; /* Force pointer cursor, disable move cursor */
+}
+
+/* Disable dragging visual cues during connection */
+.grid-tree-canvas.connecting .person-node:hover {
+    /* Override the drag hover effects */
+    filter: brightness(1.1) drop-shadow(0 0 8px rgba(46,125,50,0.6));
+}
+
+.grid-tree-canvas.connecting .person-node.selectable:hover {
+    /* Connection mode hover takes precedence */
+    transform: scale(1.1);
+    filter: brightness(1.3) drop-shadow(0 0 15px rgba(33,150,243,0.8)) !important;
+}
+
+/* Connection preview line animation */
+#connectionPreview line {
+    animation: previewPulse 1s infinite ease-in-out;
+}
+
+@keyframes previewPulse {
+    0%, 100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.9;
+    }
+}
+
+/* Enhanced context menu with connection options */
+.context-item[data-action="connectSpouse"] {
+    color: #E91E63;
+}
+
+.context-item[data-action="connectParent"] {
+    color: #795548;
+}
+
+.context-item[data-action="connectSpouse"]:hover,
+.context-item[data-action="connectParent"]:hover {
+    background: linear-gradient(90deg, #f0f8ff, #e8f4f8);
+    color: #2E7D32;
+}
+
+/* Mobile responsiveness for connection tools */
+@media (max-width: 768px) {
+    .connection-tools {
+        flex-direction: column;
+        gap: 5px;
+    }
+    
+    .connection-btn {
+        min-width: auto;
+        width: 100%;
+        height: 35px;
+        font-size: 11px;
+    }
+    
+    .connection-status {
+        left: 10px;
+        right: 10px;
+        transform: none;
+        font-size: 12px;
+        padding: 10px 15px;
+    }
+}
