@@ -1479,20 +1479,16 @@ body.dragging * {
 
 /* Person Node States During Connection */
 .person-node.selectable {
-    cursor: pointer !important; /* Override the move cursor */
-    animation: selectablePulse 2s infinite ease-in-out;
+    cursor: pointer !important;
 }
 
 .person-node.selectable:hover {
-    transform: scale(1.1);
     filter: brightness(1.3) drop-shadow(0 0 15px rgba(33,150,243,0.8));
 }
 
 .person-node.selected {
-    cursor: pointer !important; /* Override the move cursor */
-    transform: scale(1.15);
+    cursor: pointer !important;
     filter: brightness(1.4) drop-shadow(0 0 20px rgba(255,193,7,1));
-    animation: selectedGlow 1.5s infinite ease-in-out;
 }
 
 @keyframes selectablePulse {
@@ -1529,8 +1525,6 @@ body.dragging * {
 }
 
 .grid-tree-canvas.connecting .person-node.selectable:hover {
-    /* Connection mode hover takes precedence */
-    transform: scale(1.1);
     filter: brightness(1.3) drop-shadow(0 0 15px rgba(33,150,243,0.8)) !important;
 }
 
