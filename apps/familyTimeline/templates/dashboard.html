@@ -7,9 +7,20 @@
     <link rel="stylesheet" href="[[=URL('static', 'css/tree-style.css')]]">
     <style>
         .dashboard-container {
-            min-height: 100vh;
-            background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
+            /* remove the min-height */
+            /* min-height: 100vh; */
+
+            /* still keep the header offset */
             padding-top: 80px;
+
+            /* let it grow arbitrarily tall */
+            height: auto;
+            background: linear-gradient(
+            135deg,
+            #87CEEB 0%,
+            #98D8C8 50%,
+            #90EE90 100%
+            );
         }
 
         .dashboard-header {
@@ -353,6 +364,15 @@
             .welcome-section {
                 padding: 30px 20px;
             }
+        }
+
+        html, body {
+            height: auto !important;
+            overflow-y: auto !important;
+        }
+
+        .dashboard-container {
+            overflow-y: auto;
         }
     </style>
 </head>

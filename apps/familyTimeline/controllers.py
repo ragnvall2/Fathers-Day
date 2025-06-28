@@ -405,7 +405,9 @@ def update_person_endpoint(person_id):
         'bio_summary': data.get('bio_summary', ''),
         'node_color': data.get('node_color', 'green'),
         'node_shape': data.get('node_shape', 'circle'),
-        'last_edited_by_user_id': auth.user_id
+        'last_edited_by_user_id': auth.user_id,
+        'grid_row': data.get('grid_row', person.grid_row),
+        'grid_col': data.get('grid_col', person.grid_col),
     }
     
     # Handle photo if present
@@ -855,3 +857,16 @@ def api_status():
         family_tree_count=user_family_count,
         permissions_available=["view", "edit", "manage", "invite", "admin"]
     )
+
+
+# Clear Database
+
+@action('api/clear_database', method=['GET', 'POST'])
+@action.uses(db, session)   # or drop auth entirely if it’s just you
+def clear_database():
+    # delete everything except the auth tables
+    for t in db.tables:
+        if t not in ('auth_user','auth_group','auth_membership'):
+            db(db[t]).delete()
+    db.commit()
+    return dict(success=True, message="✅ All non-auth tables wiped.")
