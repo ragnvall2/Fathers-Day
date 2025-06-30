@@ -145,31 +145,24 @@ class NodeCustomization {
             case 'hexagon':
                 newNode = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
                 const hexPoints = [
-                    [cx, cy - 18],      // top
-                    [cx + 16, cy - 9],  // top right
-                    [cx + 16, cy + 9],  // bottom right
-                    [cx, cy + 18],      // bottom
-                    [cx - 16, cy + 9],  // bottom left
-                    [cx - 16, cy - 9]   // top left
+                    [cx,           cy - 18 * s],
+                    [cx + 16 * s,  cy - 9  * s],
+                    [cx + 16 * s,  cy + 9  * s],
+                    [cx,           cy + 18 * s],
+                    [cx - 16 * s,  cy + 9  * s],
+                    [cx - 16 * s,  cy - 9  * s],
                 ];
                 newNode.setAttribute('points', hexPoints.map(p => p.join(',')).join(' '));
                 break;
                 
             case 'star':
                 newNode = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                const starPoints = [
-                    [cx, cy - 18],           // top point
-                    [cx + 5, cy - 6],        // top right inner
-                    [cx + 17, cy - 6],       // top right outer
-                    [cx + 7, cy + 2],        // right inner
-                    [cx + 11, cy + 14],      // bottom right outer
-                    [cx, cy + 7],            // bottom inner
-                    [cx - 11, cy + 14],      // bottom left outer
-                    [cx - 7, cy + 2],        // left inner
-                    [cx - 17, cy - 6],       // top left outer
-                    [cx - 5, cy - 6]         // top left inner
-                ];
-                newNode.setAttribute('points', starPoints.map(p => p.join(',')).join(' '));
+                const starOffsets = [
+                    [  0, -18], [  5,  -6], [ 17,  -6], [  7,   2],
+                    [ 11,  14], [  0,   7], [-11,  14], [ -7,   2],
+                    [-17,  -6], [ -5,  -6]
+                ].map(([dx,dy]) => [cx + dx * s, cy + dy * s]);
+                newNode.setAttribute('points', starOffsets.map(p => p.join(',')).join(' '));
                 break;
                 
             case 'triangle':
@@ -324,6 +317,7 @@ class GridFamilyTree {
             this.people.forEach(person => {
                 console.log(`Person ${person.first_name}: grid_row=${person.grid_row} (${typeof person.grid_row}), grid_col=${person.grid_col} (${typeof person.grid_col})`);
             });
+
             
             // Assign grid positions to people who don't have them
             this.assignGridPositions();
@@ -740,7 +734,8 @@ class GridFamilyTree {
  */
     createPersonNode(container, person) {
         const ns     = 'http://www.w3.org/2000/svg';
-        const size   = 30;
+        const size   = 40;
+        const s = size / 20;
         const coords = this.gridToPixelCoordinates(person.grid_row, person.grid_col);
 
         // 1) Create a <g> wrapper for this person
@@ -757,54 +752,51 @@ class GridFamilyTree {
         let shapeEl;
         switch (person.node_shape) {
             case 'square':
-            shapeEl = document.createElementNS(ns, 'rect');
-            shapeEl.setAttribute('x', coords.x - size);
-            shapeEl.setAttribute('y', coords.y - size);
-            shapeEl.setAttribute('width', 2 * size);
-            shapeEl.setAttribute('height', 2 * size);
-            break;
+                shapeEl = document.createElementNS(ns, 'rect');
+                shapeEl.setAttribute('x', coords.x - size);
+                shapeEl.setAttribute('y', coords.y - size);
+                shapeEl.setAttribute('width', 2 * size);
+                shapeEl.setAttribute('height', 2 * size);
+                break;
             case 'diamond':
-            shapeEl = document.createElementNS(ns, 'rect');
-            shapeEl.setAttribute('x', coords.x - size * 0.75);
-            shapeEl.setAttribute('y', coords.y - size * 0.75);
-            shapeEl.setAttribute('width', size * 1.5);
-            shapeEl.setAttribute('height', size * 1.5);
-            shapeEl.setAttribute('transform', `rotate(45 ${coords.x} ${coords.y})`);
-            break;
+                shapeEl = document.createElementNS(ns, 'rect');
+                shapeEl.setAttribute('x', coords.x - size * 0.75);
+                shapeEl.setAttribute('y', coords.y - size * 0.75);
+                shapeEl.setAttribute('width', size * 1.5);
+                shapeEl.setAttribute('height', size * 1.5);
+                shapeEl.setAttribute('transform', `rotate(45 ${coords.x} ${coords.y})`);
+                break;
             case 'hexagon':
-            shapeEl = document.createElementNS(ns, 'polygon');
-            shapeEl.setAttribute('points', [
-                [coords.x, coords.y - 18],
-                [coords.x + 16, coords.y - 9],
-                [coords.x + 16, coords.y + 9],
-                [coords.x, coords.y + 18],
-                [coords.x - 16, coords.y + 9],
-                [coords.x - 16, coords.y - 9]
-            ].map(p => p.join(',')).join(' '));
-            break;
+                shapeEl = document.createElementNS(ns, 'polygon');
+                const hex = [
+                    [  0, -18],
+                    [ 16,  -9],
+                    [ 16,   9],
+                    [  0,  18],
+                    [-16,   9],
+                    [-16,  -9],
+                ].map(([dx, dy]) => `${coords.x + dx * s},${coords.y + dy * s}`);
+                shapeEl.setAttribute('points', hex.join(' '));
+                break;
+
             case 'star':
-            shapeEl = document.createElementNS(ns, 'polygon');
-            shapeEl.setAttribute('points', [
-                [coords.x, coords.y - 18],
-                [coords.x + 5, coords.y - 6],
-                [coords.x + 17, coords.y - 6],
-                [coords.x + 7, coords.y + 2],
-                [coords.x + 11, coords.y + 14],
-                [coords.x, coords.y + 7],
-                [coords.x - 11, coords.y + 14],
-                [coords.x - 7, coords.y + 2],
-                [coords.x - 17, coords.y - 6],
-                [coords.x - 5, coords.y - 6]
-            ].map(p => p.join(',')).join(' '));
-            break;
+                shapeEl = document.createElementNS(ns,'polygon');
+                const starOffsets = [
+                    [  0, -18], [  5,  -6], [ 17,  -6], [  7,   2],
+                    [ 11,  14], [  0,   7], [-11,  14], [ -7,   2],
+                    [-17,  -6], [ -5,  -6]
+                ].map(([dx,dy]) => `${coords.x + dx * s},${coords.y + dy * s}`);
+                shapeEl.setAttribute('points', starOffsets.join(' '));
+                break;
             case 'triangle':
-            shapeEl = document.createElementNS(ns, 'polygon');
-            shapeEl.setAttribute('points', [
-                [coords.x, coords.y - 18],
-                [coords.x - 16, coords.y + 13],
-                [coords.x + 16, coords.y + 13]
-            ].map(p => p.join(',')).join(' '));
-            break;
+                shapeEl = document.createElementNS(ns,'polygon');
+                const tri = [
+                    [  0, -18],
+                    [-16,  13],
+                    [ 16,  13]
+                ].map(([dx,dy]) => `${coords.x + dx * s},${coords.y + dy * s}`);
+                shapeEl.setAttribute('points', tri.join(' '));
+                break;
             case 'circle':
             default:
             shapeEl = document.createElementNS(ns, 'circle');
@@ -2073,6 +2065,7 @@ class GridFamilyTree {
             if (this.pendingGridPosition) {
                 personData.grid_row = this.pendingGridPosition.row;
                 personData.grid_col = this.pendingGridPosition.col;
+                
                 console.log('*** ADDING GRID POSITION TO PERSON DATA ***');
                 console.log('Grid position being added:', this.pendingGridPosition);
             }
@@ -2104,6 +2097,12 @@ class GridFamilyTree {
                 // Reload and re-render
                 await this.loadTreeData();
                 this.renderTree();
+
+                // if we were in edit‐mode, re-show all the edit UI (grid overlay, buttons, scrolling)
+                if ( this.isEditMode ) {
+                    this.updateEditModeUI();
+                    this.enableGridScrolling();
+                }
                 
                 return result;
             } else {
@@ -2163,6 +2162,14 @@ class GridFamilyTree {
     
     async handleAddPersonSubmit(e) {
         try {
+
+            e.preventDefault();
+            e.stopPropagation();
+
+            // 1) force edit mode ON *before* we re-render
+            this.isEditMode = true;
+            this.updateEditModeUI();
+            this.enableGridScrolling();
             const formData = new FormData(e.target);
             
             const personData = {
@@ -2176,7 +2183,9 @@ class GridFamilyTree {
                 birth_place: formData.get('birth_place'),
                 gender: formData.get('gender'),
                 is_living: formData.get('is_living') === 'on',
-                bio_summary: formData.get('bio_summary')
+                bio_summary: formData.get('bio_summary'),
+                node_color: formData.get('node_color'),
+                node_shape: formData.get('node_shape'),
             };
             
             // Handle photo upload
@@ -2188,6 +2197,7 @@ class GridFamilyTree {
             }
             
             await this.createPerson(personData);
+
             
             // Close modal and reset form
             const modal = document.getElementById('addPersonModal');
@@ -2288,6 +2298,30 @@ class GridFamilyTree {
             }
         });
     }
+
+    async handleDeletePerson(personId) {
+        try {
+            const res = await fetch(`/familyTimeline/api/person/${personId}`, {
+            method: 'DELETE'
+            });
+            const result = await res.json();
+            if (!result.success) throw new Error(result.message || 'Delete failed');
+            this.showSuccessMessage('Person deleted successfully');
+            // hide the modal
+            document.getElementById('deleteConfirmModal').style.display = 'none';
+            // reload + re-render, keeping edit mode
+            await this.loadTreeData();
+            this.renderTree();
+            if (this.isEditMode) {
+            this.updateEditModeUI();
+            this.enableGridScrolling();
+            }
+        } catch (err) {
+            console.error(err);
+            this.showErrorMessage('Couldn’t delete: ' + err.message);
+        }
+    }
+
     async handleEditPersonSubmit(e) {
         e.preventDefault();
         const form = e.target;
