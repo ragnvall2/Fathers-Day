@@ -268,6 +268,16 @@ class GridFamilyTree {
         this.scale = 1;
         this.panX = 0;
         this.panY = 0;
+
+        // Settings
+        this.childLineColor = '#4CAF50';
+        this.spouseLineColor = '#DC143C';
+
+        // Add story cache
+        this.storyCache = new Map();
+        this.currentStoryId = null;
+
+        this.loadSettings();
         
         this.init();
     }
@@ -449,14 +459,14 @@ class GridFamilyTree {
                 <!-- Grid Size Controls -->
                 <div id="gridSizeControls" class="grid-controls" style="display: none;">
                     <div class="grid-control-group">
-                        <label>Generations: <span id="gridRowsValue">${this.gridRows}</span></label>
+                        <label>Rows: <span id="gridRowsValue">${this.gridRows}</span></label>
                         <div>
                             <button id="gridRowsDown" class="grid-btn">-</button>
                             <button id="gridRowsUp" class="grid-btn">+</button>
                         </div>
                     </div>
                     <div class="grid-control-group">
-                        <label>Positions: <span id="gridColsValue">${this.gridCols}</span></label>
+                        <label>Columns: <span id="gridColsValue">${this.gridCols}</span></label>
                         <div>
                             <button id="gridColsDown" class="grid-btn">-</button>
                             <button id="gridColsUp" class="grid-btn">+</button>
@@ -538,6 +548,15 @@ class GridFamilyTree {
         
         if (canvas) {
             canvas.classList.toggle('edit-mode', this.isEditMode);
+            
+            // IMPORTANT: Enable scrolling in edit mode
+            if (this.isEditMode) {
+                canvas.style.overflow = 'auto';
+                canvas.style.cursor = 'default';
+            } else {
+                canvas.style.overflow = 'hidden';
+                canvas.style.cursor = 'grab';
+            }
         }
         
         // Cancel any active connections when leaving edit mode
@@ -561,7 +580,32 @@ class GridFamilyTree {
         
         if (this.isEditMode) {
             this.renderTree();
+            
+            // Auto-save grid settings
+            this.autoSaveGridSettings();
+            
+            // Force scroll recalculation after a brief delay
+            setTimeout(() => {
+                const canvas = document.querySelector('.grid-tree-canvas');
+                if (canvas) {
+                    canvas.scrollTop = 0;
+                    canvas.scrollLeft = 0;
+                }
+            }, 100);
         }
+    }
+
+    autoSaveGridSettings() {
+        // Auto-save grid settings when they change
+        const settings = {
+            childLineColor: this.childLineColor || '#4CAF50',
+            spouseLineColor: this.spouseLineColor || '#DC143C',
+            gridRows: this.gridRows,
+            gridCols: this.gridCols
+        };
+        
+        localStorage.setItem(`familyTree_${this.familyId}_settings`, JSON.stringify(settings));
+        console.log('Grid settings auto-saved:', this.gridRows, 'x', this.gridCols);
     }
     
     updateSVGSize() {
@@ -692,7 +736,7 @@ class GridFamilyTree {
             const y = this.gridStartY + (row * this.gridCellSize) + (this.gridCellSize / 2);
             gridHTML += `<text x="${this.gridStartX - 40}" y="${y + 5}" 
                          font-family="Arial, sans-serif" font-size="14" font-weight="bold" 
-                         fill="#2E7D32" text-anchor="middle">Gen ${this.gridRows - row}</text>`;
+                         fill="#2E7D32" text-anchor="middle">${this.gridRows - row}</text>`;
         }
         
         // Draw grid spots (clickable dots for empty positions)
@@ -897,13 +941,13 @@ class GridFamilyTree {
         const coords1 = this.gridToPixelCoordinates(person1.grid_row, person1.grid_col);
         const coords2 = this.gridToPixelCoordinates(person2.grid_row, person2.grid_col);
         
-        // Red line between spouses
+        // Use the dynamic spouse line color instead of hardcoded '#DC143C'
         const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
         line.setAttribute('x1', coords1.x);
         line.setAttribute('y1', coords1.y);
         line.setAttribute('x2', coords2.x);
         line.setAttribute('y2', coords2.y);
-        line.setAttribute('stroke', '#DC143C');
+        line.setAttribute('stroke', this.spouseLineColor || '#DC143C'); // Use dynamic color
         line.setAttribute('stroke-width', '4');
         container.appendChild(line);
         
@@ -916,7 +960,7 @@ class GridFamilyTree {
         heart.setAttribute('y', heartY + 5);
         heart.setAttribute('text-anchor', 'middle');
         heart.setAttribute('font-size', '20');
-        heart.setAttribute('fill', '#DC143C');
+        heart.setAttribute('fill', this.spouseLineColor || '#DC143C'); // Use dynamic color for heart too
         heart.textContent = '❤️';
         container.appendChild(heart);
     }
@@ -969,7 +1013,7 @@ class GridFamilyTree {
         
         if (parents.length === 0 || children.length === 0) return;
         
-        // Calculate connection point (heart position for couples, or parent position for single parent)
+        // Calculate connection point
         let heartCoords;
         if (parents.length === 2) {
             const coords1 = this.gridToPixelCoordinates(parents[0].grid_row, parents[0].grid_col);
@@ -991,7 +1035,7 @@ class GridFamilyTree {
             line.setAttribute('y1', heartCoords.y + 15);
             line.setAttribute('x2', childCoords.x);
             line.setAttribute('y2', childCoords.y - 35);
-            line.setAttribute('stroke', '#8B4513');
+            line.setAttribute('stroke', this.childLineColor || '#4CAF50'); // Use dynamic color
             line.setAttribute('stroke-width', '3');
             container.appendChild(line);
         });
@@ -1008,7 +1052,52 @@ class GridFamilyTree {
         this.setupContextMenu();
         this.setupModalEventListeners();
         this.setupFormHandlers();
+        this.settingsEventListeners();
+        this.setupFullStoryModalEventListeners();
 
+    }
+
+    settingsEventListeners() {
+        // Settings panel toggle
+        document.getElementById('settingsBtn')?.addEventListener('click', () => {
+            this.openSettingsPanel();
+        });
+
+        document.getElementById('closeSettings')?.addEventListener('click', () => {
+            this.closeSettingsPanel();
+        });
+
+        // Color input changes with live preview
+        document.getElementById('childLineColor')?.addEventListener('input', (e) => {
+            this.updateLineColor('child', e.target.value);
+            this.updateColorPreview('childColorPreview', e.target.value);
+        });
+
+        document.getElementById('spouseLineColor')?.addEventListener('input', (e) => {
+            this.updateLineColor('spouse', e.target.value);
+            this.updateColorPreview('spouseColorPreview', e.target.value);
+        });
+
+        // Settings actions
+        document.getElementById('resetColors')?.addEventListener('click', () => {
+            this.resetLineColors();
+        });
+
+        document.getElementById('saveSettings')?.addEventListener('click', () => {
+            this.saveSettings();
+        });
+
+        // Close panel when clicking outside (optional)
+        document.addEventListener('click', (e) => {
+            const panel = document.getElementById('settingsPanel');
+            const settingsBtn = document.getElementById('settingsBtn');
+            
+            if (panel && panel.classList.contains('open') && 
+                !panel.contains(e.target) && 
+                !settingsBtn.contains(e.target)) {
+                this.closeSettingsPanel();
+            }
+        });
     }
     
     setupViewControls() {
@@ -1980,10 +2069,6 @@ class GridFamilyTree {
         // Load person details and stories
     }
     
-    openAddStoryModal(personId) {
-        console.log('Opening add story modal for person:', personId);
-        // TODO: Integrate with existing story modal
-    }
     
     openAddSpouseModal(personId) {
         console.log('Opening add spouse modal for person:', personId);
@@ -2668,41 +2753,56 @@ class GridFamilyTree {
         console.log('window.currentUser:', window.currentUser);
         
         const modal = document.getElementById('addStoryModal');
-        if (modal) {
-            // Set the person ID for the story
-            document.getElementById('storyPersonId').value = personId;
-            
-            // Load the person's name for context
-            const person = this.people.find(p => p.id === personId);
-            if (person) {
-                const personName = `${person.first_name} ${person.last_name || ''}`.trim();
-                document.getElementById('storyPersonName').textContent = personName;
-            }
-            
-            // Pre-fill the author name with the current user's name
-            const authorInput = document.getElementById('storyAuthor');
-            if (authorInput && window.currentUser) {
-                authorInput.value = window.currentUser.name;
-                authorInput.readOnly = true; // Make it read-only since it's the logged-in user
-                authorInput.style.backgroundColor = '#f5f5f5'; // Visual indication it's read-only
-            }
-            
-            modal.style.display = 'block';
-            document.getElementById('storyForm').reset();
-            
-            // Re-set the author after reset
-            if (authorInput && window.currentUser) {
-                authorInput.value = window.currentUser.name;
-            }
-            
-            // Clear photo preview
-            const photoPreview = document.getElementById('storyPhotoPreview');
-            if (photoPreview) photoPreview.style.display = 'none';
-            
-            // Hide theme questions initially
-            const questionsGroup = document.getElementById('themeQuestionsGroup');
-            if (questionsGroup) questionsGroup.style.display = 'none';
+        if (!modal) {
+            console.error('❌ addStoryModal not found in DOM!');
+            return;
         }
+        
+        // Reset form BEFORE showing modal
+        const form = document.getElementById('storyForm');
+        if (form) {
+            form.reset();
+        }
+        
+        // Set all form values BEFORE showing modal
+        const storyPersonId = document.getElementById('storyPersonId');
+        if (storyPersonId) {
+            storyPersonId.value = personId;
+        }
+        
+        // Load person name
+        const person = this.people.find(p => p.id === personId);
+        if (person) {
+            const personName = `${person.first_name} ${person.last_name || ''}`.trim();
+            const nameElement = document.getElementById('storyPersonName');
+            if (nameElement) {
+                nameElement.textContent = personName;
+            }
+        }
+        
+        // Set author info
+        const authorInput = document.getElementById('storyAuthor');
+        if (authorInput && window.currentUser) {
+            authorInput.value = window.currentUser.name;
+            authorInput.readOnly = true;
+            authorInput.style.backgroundColor = '#f5f5f5';
+        }
+        
+        // Hide/clear optional elements
+        const photoPreview = document.getElementById('storyPhotoPreview');
+        if (photoPreview) {
+            photoPreview.style.display = 'none';
+        }
+        
+        const questionsGroup = document.getElementById('themeQuestionsGroup');
+        if (questionsGroup) {
+            questionsGroup.style.display = 'none';
+        }
+        
+        // Show modal LAST, after everything is set up
+        modal.style.display = 'block';
+        
+        console.log('✅ Story modal opened successfully');
     }
     
     openPersonDetailModal(personId) {
@@ -2744,50 +2844,402 @@ class GridFamilyTree {
         // Display stories directly (no tabs needed)
         this.displayPersonStories(stories);
     }
+    
     displayPersonStories(stories) {
         const storiesContainer = document.getElementById('personStories');
         if (!storiesContainer) return;
         
         if (stories && stories.length > 0) {
-            storiesContainer.innerHTML = stories.map(story => `
-                <div class="story-item" style="background: #f8f9fa; padding: 20px; margin: 15px 0; border-radius: 10px; border-left: 4px solid #28a745;">
+            storiesContainer.innerHTML = stories.map((story, index) => `
+                <div class="story-item" onclick="window.gridFamilyTree.openFullStoryModal(${JSON.stringify(story).replace(/"/g, '&quot;')})"
+                    style="background: #f8f9fa; padding: 20px; margin: 15px 0; border-radius: 10px; border-left: 4px solid #28a745;">
+                    
+                    ${story.photo_url ? 
+                        `<img src="${story.photo_url}" class="story-preview-image" alt="Story preview" 
+                            onload="console.log('Preview image loaded:', '${story.photo_url}')"
+                            onerror="console.log('Preview image failed:', '${story.photo_url}'); this.style.display='none';">` : 
+                        story.photo_data ? 
+                        `<img src="/familyTimeline/api/story-photo/${story.id}" class="story-preview-image" alt="Story preview"
+                            onload="console.log('Preview image loaded from API:', '/familyTimeline/api/story-photo/${story.id}')"
+                            onerror="console.log('Preview image failed from API:', '/familyTimeline/api/story-photo/${story.id}'); this.style.display='none';">` : 
+                        ''}
                     <div class="story-header" style="margin-bottom: 15px;">
                         <h4 style="color: #28a745; margin-bottom: 8px;">${story.title}</h4>
                         <div class="story-meta" style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 10px;">
                             <span class="theme" style="background: #e3f2fd; color: #1976d2; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${story.theme}</span>
                             ${story.time_period ? `<span class="period" style="background: #fff3e0; color: #f57c00; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${story.time_period}</span>` : ''}
-                            ${story.year_occurred ? `<span class="year" style="background: #f3e5f5; color: #7b1fa2; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${story.year_occurred}</span>` : ''}
-                            ${story.is_featured ? `<span class="featured" style="background: #fff8e1; color: #ff8f00; padding: 4px 8px; border-radius: 12px; font-size: 12px;">⭐ Featured</span>` : ''}
+                            ${story.year_occurred ? `<span class="year" style="background: #e8f5e9; color: #2e7d32; padding: 4px 8px; border-radius: 12px; font-size: 12px;">${story.year_occurred}</span>` : ''}
                         </div>
-                        <div class="story-author" style="font-style: italic; color: #666; font-size: 14px;">by ${story.author_name}</div>
-                        <div class="story-date" style="font-size: 12px; color: #999;">Added on ${new Date(story.created_at).toLocaleDateString()}</div>
+                        <div style="font-size: 12px; color: #666; margin-bottom: 10px;">
+                            <strong>Author:</strong> ${story.author_name} • 
+                            <em>${new Date(story.created_at).toLocaleDateString()}</em>
+                        </div>
                     </div>
                     
-                    ${story.questions_and_answers && story.questions_and_answers.length > 0 ? `
-                        <div class="story-questions" style="background: #f0f8ff; padding: 15px; border-radius: 8px; margin: 15px 0; border-left: 3px solid #28a745;">
-                            ${story.questions_and_answers.map(qa => `
-                                <div class="question-answer" style="margin-bottom: 12px;">
-                                    <div class="question" style="font-weight: bold; color: #28a745; margin-bottom: 5px; font-size: 14px;">${qa.question}</div>
-                                    <div class="answer" style="color: #333; line-height: 1.5; padding-left: 10px; border-left: 2px solid #ddd; font-style: italic; background: rgba(255,255,255,0.7); padding: 8px 10px; border-radius: 5px;">${qa.answer}</div>
-                                </div>
-                            `).join('')}
-                        </div>
-                    ` : ''}
+                    <!-- Story preview text (truncated) -->
+                    <div class="story-content" style="color: #333; line-height: 1.6; word-wrap: break-word; max-width: 100%; overflow: hidden;">
+                        ${this.truncateStoryText(story.story_text, 150)}
+                    </div>
                     
-                    <div class="story-text" style="line-height: 1.6; margin: 15px 0; color: #333; background: rgba(255,255,255,0.9); padding: 15px; border-radius: 8px; border: 1px solid rgba(40,167,69,0.1);">${story.story_text}</div>
-                    
-                    ${story.has_photo ? `<img src="/familyTimeline/api/story-photo/${story.id}" class="story-photo" style="max-width: 100%; border-radius: 8px; margin-top: 15px; box-shadow: 0 4px 12px rgba(0,0,0,0.1);" alt="Story photo">` : ''}
+                    <!-- Questions preview if any -->
+                    ${story.theme_questions && Object.keys(story.theme_questions).length > 0 ? 
+                        `<div style="margin-top: 10px; padding: 10px; background: rgba(46,125,50,0.05); border-radius: 8px;">
+                            <small style="color: #2E7D32; font-weight: bold;">Includes ${Object.keys(story.theme_questions).length} answered questions</small>
+                        </div>` : ''
+                    }
                 </div>
             `).join('');
         } else {
-            storiesContainer.innerHTML = `
-                <div style="text-align: center; color: #666; font-style: italic; padding: 40px 20px; background: #f8f9fa; border-radius: 10px; margin: 20px 0;">
-                    <h4 style="color: #28a745; margin-bottom: 10px;">📖 No Stories Yet</h4>
-                    <p>This person's stories are waiting to be told. Click "Add Story" to share their memories, experiences, and legacy for future generations.</p>
-                </div>
-            `;
+            storiesContainer.innerHTML = '<div class="no-stories">No stories yet. Click "Add Story" to share the first memory!</div>';
         }
     }
+
+    // Helper function to truncate story text for previews
+    truncateStoryText(text, maxLength) {
+        if (!text) return '';
+        if (text.length <= maxLength) return text;
+        
+        // Find the last space before the max length to avoid cutting words
+        const truncated = text.substring(0, maxLength);
+        const lastSpace = truncated.lastIndexOf(' ');
+        
+        if (lastSpace > 0 && lastSpace > maxLength * 0.8) { // Only use space if it's not too far back
+            return truncated.substring(0, lastSpace) + '...';
+        }
+        return truncated + '...';
+    }
+
+    openFullStoryModal(story) {
+        console.log('🔥 Modal opening for story:', story.title);
+        
+        const modal = document.getElementById('fullStoryModal');
+        if (!modal || !story) return;
+        
+        // Check if this story is already displayed
+        if (this.currentStoryId === story.id) {
+            modal.style.display = 'block';
+            const personModal = document.getElementById('personModal');
+            if (personModal) personModal.style.display = 'none';
+            return;
+        }
+        
+        // Check cache first
+        if (this.storyCache.has(story.id)) {
+            const cachedContent = this.storyCache.get(story.id);
+            this.applyCachedStoryContent(cachedContent);
+            this.currentStoryId = story.id;
+            modal.style.display = 'block';
+            const personModal = document.getElementById('personModal');
+            if (personModal) personModal.style.display = 'none';
+            return;
+        }
+        
+        // Store current story for navigation
+        this.currentStory = story;
+        this.currentStoryId = story.id;
+        
+        // Build content once and cache it
+        const content = this.buildStoryContent(story);
+        this.storyCache.set(story.id, content);
+        this.applyCachedStoryContent(content);
+        
+        // Show modal
+        modal.style.display = 'block';
+        const personModal = document.getElementById('personModal');
+        if (personModal) personModal.style.display = 'none';
+
+        // After setting all content, add debugging
+        setTimeout(() => {
+            const body = document.querySelector('.fullscreen-body');
+            const textElement = document.getElementById('fullStoryText');
+            
+            console.log('📏 Body dimensions:', {
+                scrollHeight: body.scrollHeight,
+                clientHeight: body.clientHeight,
+                scrollTop: body.scrollTop
+            });
+            
+            console.log('📝 Text element:', {
+                offsetHeight: textElement.offsetHeight,
+                scrollHeight: textElement.scrollHeight,
+                textLength: textElement.textContent.length
+            });
+            
+            // Log any layout changes
+            const observer = new ResizeObserver(entries => {
+                console.log('🔄 Layout change detected:', entries[0].contentRect);
+            });
+            observer.observe(body);
+            
+        }, 100);
+    }
+
+
+    // Build story content for caching
+    buildStoryContent(story) {
+        const content = {
+            title: story.title,
+            photoData: {
+                hasPhoto: !!(story.photo_url || story.photo_data),
+                src: story.photo_url || (story.photo_data ? `/familyTimeline/api/story-photo/${story.id}` : ''),
+                alt: story.title
+            },
+            metadata: {
+                theme: story.theme || '',
+                period: story.time_period || '',
+                year: story.year_occurred || '',
+                author: story.author_name || '',
+                date: new Date(story.created_at).toLocaleDateString()
+            },
+            questions: story.theme_questions && Object.keys(story.theme_questions).length > 0 ? 
+                Object.entries(story.theme_questions).map(([question, answer]) => ({
+                    question: this.escapeHtml(question),
+                    answer: this.escapeHtml(answer)
+                })) : null,
+            storyText: story.story_text ? story.story_text.replace(/\n/g, '<br>') : ''
+        };
+        
+        return content;
+    }
+
+    // Apply cached content to DOM
+    applyCachedStoryContent(content) {
+        // Title
+        document.getElementById('fullStoryTitle').textContent = content.title;
+        
+        // Photo
+        const photoSection = document.getElementById('fullStoryPhotoSection');
+        const photoImg = document.getElementById('fullStoryPhoto');
+        if (content.photoData.hasPhoto) {
+            photoImg.src = content.photoData.src;
+            photoImg.alt = content.photoData.alt;
+            photoSection.style.display = 'block';
+        } else {
+            photoSection.style.display = 'none';
+        }
+        
+        // Metadata
+        const themeTag = document.getElementById('fullStoryTheme');
+        const periodTag = document.getElementById('fullStoryPeriod');
+        const yearTag = document.getElementById('fullStoryYear');
+        
+        themeTag.textContent = content.metadata.theme;
+        themeTag.style.display = content.metadata.theme ? 'inline-block' : 'none';
+        
+        periodTag.textContent = content.metadata.period;
+        periodTag.style.display = content.metadata.period ? 'inline-block' : 'none';
+        
+        yearTag.textContent = content.metadata.year;
+        yearTag.style.display = content.metadata.year ? 'inline-block' : 'none';
+        
+        document.getElementById('fullStoryAuthor').textContent = content.metadata.author;
+        document.getElementById('fullStoryDate').textContent = content.metadata.date;
+        
+        // Questions
+        const questionsSection = document.getElementById('fullStoryQuestions');
+        if (content.questions) {
+            questionsSection.innerHTML = `
+                <h4>Story Questions</h4>
+                ${content.questions.map(q => `
+                    <div class="question-answer-pair">
+                        <div class="fullscreen-question">${q.question}</div>
+                        <div class="fullscreen-answer">${q.answer}</div>
+                    </div>
+                `).join('')}
+            `;
+            questionsSection.style.display = 'block';
+        } else {
+            questionsSection.style.display = 'none';
+        }
+        
+        // Story text
+        document.getElementById('fullStoryText').innerHTML = content.storyText;
+    }
+    // Close fullscreen story modal and return to person stories
+    closeFullStoryModal() {
+        const fullStoryModal = document.getElementById('fullStoryModal');
+        const personModal = document.getElementById('personModal');
+        
+        if (fullStoryModal) {
+            fullStoryModal.style.display = 'none';
+        }
+        
+        // Show the person modal again
+        if (personModal) {
+            personModal.style.display = 'block';
+        }
+        
+        // Don't clear currentStoryId here - keep it for caching
+        this.currentStory = null;
+    }
+
+    // Add event listeners for the fullscreen story modal
+    setupFullStoryModalEventListeners() {
+        // Back to stories button
+        document.getElementById('backToStories')?.addEventListener('click', () => {
+            this.closeFullStoryModal();
+        });
+        
+        // Close button
+        document.querySelector('#fullStoryModal .fullscreen-close')?.addEventListener('click', () => {
+            const fullStoryModal = document.getElementById('fullStoryModal');
+            const personModal = document.getElementById('personModal');
+            
+            if (fullStoryModal) fullStoryModal.style.display = 'none';
+            if (personModal) personModal.style.display = 'none';
+            
+            this.currentStory = null;
+        });
+        
+        // Close on backdrop click
+        document.getElementById('fullStoryModal')?.addEventListener('click', (e) => {
+            if (e.target.id === 'fullStoryModal') {
+                const fullStoryModal = document.getElementById('fullStoryModal');
+                const personModal = document.getElementById('personModal');
+                
+                if (fullStoryModal) fullStoryModal.style.display = 'none';
+                if (personModal) personModal.style.display = 'none';
+                
+                this.currentStory = null;
+            }
+        });
+
+        // Simple, stable scroll handling
+        const fullscreenBody = document.querySelector('.fullscreen-body');
+        if (fullscreenBody) {
+            // Use passive listeners and throttle to prevent layout thrashing
+            let ticking = false;
+            
+            fullscreenBody.addEventListener('scroll', () => {
+                if (!ticking) {
+                    requestAnimationFrame(() => {
+                        ticking = false;
+                        // Any scroll handling can go here (if needed)
+                    });
+                    ticking = true;
+                }
+            }, { passive: true });
+        }
+    }
+
+    // ===========================================
+    // Settings!
+    // ===========================================
+
+    // Settings Panel Methods
+    openSettingsPanel() {
+        const panel = document.getElementById('settingsPanel');
+        if (panel) {
+            panel.classList.add('open');
+            // Initialize color previews
+            const childColor = document.getElementById('childLineColor').value;
+            const spouseColor = document.getElementById('spouseLineColor').value;
+            
+            document.getElementById('childColorPreview').style.backgroundColor = childColor;
+            document.getElementById('childColorPreview').textContent = childColor.toUpperCase();
+            document.getElementById('spouseColorPreview').style.backgroundColor = spouseColor;
+            document.getElementById('spouseColorPreview').textContent = spouseColor.toUpperCase();
+        }
+    }
+
+    closeSettingsPanel() {
+        const panel = document.getElementById('settingsPanel');
+        if (panel) {
+            panel.classList.remove('open');
+        }
+    }
+
+    updateLineColor(lineType, color) {
+        // Update CSS custom properties for immediate visual feedback
+        const root = document.documentElement;
+        if (lineType === 'child') {
+            root.style.setProperty('--child-line-color', color);
+            this.childLineColor = color;
+        } else if (lineType === 'spouse') {
+            root.style.setProperty('--spouse-line-color', color);
+            this.spouseLineColor = color;
+        }
+        
+        // Re-render connections to apply new colors
+        this.renderConnections();
+    }
+
+    resetLineColors() {
+        const defaultChildColor = '#4CAF50';
+        const defaultSpouseColor = '#DC143C'; // Red color for spouses
+        
+        document.getElementById('childLineColor').value = defaultChildColor;
+        document.getElementById('spouseLineColor').value = defaultSpouseColor;
+        
+        this.updateLineColor('child', defaultChildColor);
+        this.updateLineColor('spouse', defaultSpouseColor);
+        
+        // Update previews
+        document.getElementById('childColorPreview').style.backgroundColor = defaultChildColor;
+        document.getElementById('childColorPreview').textContent = defaultChildColor.toUpperCase();
+        document.getElementById('spouseColorPreview').style.backgroundColor = defaultSpouseColor;
+        document.getElementById('spouseColorPreview').textContent = defaultSpouseColor.toUpperCase();
+    }
+
+    saveSettings() {
+        // Save to localStorage for persistence
+        const settings = {
+            childLineColor: this.childLineColor || '#4CAF50',
+            spouseLineColor: this.spouseLineColor || '#DC143C',
+            gridRows: this.gridRows,
+            gridCols: this.gridCols
+        };
+        
+        localStorage.setItem(`familyTree_${this.familyId}_settings`, JSON.stringify(settings));
+        
+        // Close panel
+        this.closeSettingsPanel();
+    }
+
+    loadSettings() {
+        const savedSettings = localStorage.getItem(`familyTree_${this.familyId}_settings`);
+        if (savedSettings) {
+            const settings = JSON.parse(savedSettings);
+            
+            // Load line colors
+            this.childLineColor = settings.childLineColor || '#4CAF50';
+            this.spouseLineColor = settings.spouseLineColor || '#DC143C';
+            
+            // Load grid size
+            this.gridRows = settings.gridRows || this.gridRows;
+            this.gridCols = settings.gridCols || this.gridCols;
+            
+            // Apply to color inputs if they exist
+            const childInput = document.getElementById('childLineColor');
+            const spouseInput = document.getElementById('spouseLineColor');
+            if (childInput) childInput.value = this.childLineColor;
+            if (spouseInput) spouseInput.value = this.spouseLineColor;
+            
+            // Update grid displays
+            const rowsValue = document.getElementById('gridRowsValue');
+            const colsValue = document.getElementById('gridColsValue');
+            if (rowsValue) rowsValue.textContent = this.gridRows;
+            if (colsValue) colsValue.textContent = this.gridCols;
+            
+            // Apply to CSS variables
+            const root = document.documentElement;
+            root.style.setProperty('--child-line-color', this.childLineColor);
+            root.style.setProperty('--spouse-line-color', this.spouseLineColor);
+            
+            // Update SVG size for new grid dimensions
+            this.updateSVGSize();
+        }
+    }
+
+    updateColorPreview(previewId, color) {
+        const preview = document.getElementById(previewId);
+        if (preview) {
+            preview.style.backgroundColor = color;
+            preview.textContent = color.toUpperCase();
+        }
+    }
+
+
 }
 
 

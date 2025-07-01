@@ -475,7 +475,7 @@ def get_person_stories(person_id):
     
     stories_data = []
     for story in stories:
-        stories_data.append({
+        story_data = {
             'id': story.id,
             'title': story.title,
             'author_name': story.author_name,
@@ -489,8 +489,16 @@ def get_person_stories(person_id):
             'is_featured': story.is_featured,
             'created_at': story.created_at.isoformat(),
             'can_edit': story.can_be_edited_by_others,
-            'author_user_id': story.author_user_id
-        })
+            'author_user_id': story.author_user_id,
+            'theme_questions': story.questions_and_answers or {}  # Add this for the questions display
+        }
+        
+        # Add photo URL if photo exists
+        if story.photo_data:
+            story_data['photo_url'] = f"/familyTimeline/api/story-photo/{story.id}"
+            story_data['photo_filename'] = story.photo_filename
+        
+        stories_data.append(story_data)
     
     return stories_data
 

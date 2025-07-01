@@ -87,10 +87,8 @@ body {
     left: 0;
     right: 0;
     bottom: 0;
-    overflow: hidden;
     background: linear-gradient(to bottom, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
 }
-
 .simple-tree-canvas {
     width: 100%;
     height: 100%;
@@ -1629,7 +1627,12 @@ body.dragging * {
     .story-content {
         color: #333;
         line-height: 1.6;
-        margin-bottom: 10px;
+        word-wrap: break-word;
+        word-break: break-word;
+        overflow-wrap: break-word;
+        white-space: normal;
+        max-width: 100%;
+        overflow: hidden;
     }
 
     .story-photo {
@@ -2042,3 +2045,568 @@ body.dragging * {
         }
     }
 }
+
+/* Setting panel*/
+
+/* Settings Panel Styles */
+.settings-panel {
+    position: fixed;
+    top: 0;
+    right: -400px;
+    width: 400px;
+    height: 100vh;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fff8 100%);
+    box-shadow: -5px 0 25px rgba(0,0,0,0.15);
+    transition: right 0.3s ease;
+    z-index: 2000;
+    border-left: 3px solid rgba(46,125,50,0.2);
+    overflow-y: auto;
+}
+
+.settings-panel.open {
+    right: 0;
+}
+
+.settings-header {
+    padding: 25px 30px 20px;
+    border-bottom: 2px solid rgba(46,125,50,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(46,125,50,0.05);
+}
+
+.settings-header h3 {
+    color: #2E7D32;
+    font-size: 22px;
+    margin: 0;
+}
+
+.close-settings {
+    background: none;
+    border: none;
+    font-size: 28px;
+    color: #666;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    padding: 5px;
+    line-height: 1;
+}
+
+.close-settings:hover {
+    color: #2E7D32;
+}
+
+.settings-content {
+    padding: 30px;
+}
+
+.setting-group {
+    margin-bottom: 30px;
+}
+
+.setting-group label {
+    display: block;
+    margin-bottom: 12px;
+    color: #2E7D32;
+    font-weight: bold;
+    font-size: 16px;
+}
+
+.color-input-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: rgba(46,125,50,0.05);
+    border-radius: 10px;
+    border: 2px solid rgba(46,125,50,0.1);
+}
+
+.color-input-wrapper input[type="color"] {
+    width: 60px;
+    height: 40px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    background: none;
+}
+
+.color-preview {
+    flex: 1;
+    height: 40px;
+    border-radius: 8px;
+    border: 2px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: bold;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
+
+.setting-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 40px;
+    padding-top: 25px;
+    border-top: 2px solid rgba(46,125,50,0.1);
+}
+
+.setting-actions .btn {
+    flex: 1;
+}
+
+/* Edit Mode Scrolling Fix */
+.grid-tree-canvas.edit-mode {
+    overflow: auto !important;
+    cursor: default !important;
+}
+
+.grid-tree-canvas.edit-mode::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.grid-tree-canvas.edit-mode::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+}
+
+.grid-tree-canvas.edit-mode::-webkit-scrollbar-thumb {
+    background: rgba(46,125,50,0.3);
+    border-radius: 6px;
+}
+
+.grid-tree-canvas.edit-mode::-webkit-scrollbar-thumb:hover {
+    background: rgba(46,125,50,0.5);
+}
+
+/* Make sure the canvas can scroll in both directions when in edit mode */
+.grid-tree-canvas {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    cursor: grab;
+    background: linear-gradient(135deg, #87CEEB 0%, #98D8C8 50%, #90EE90 100%);
+    overflow: hidden; /* Default for view mode */
+}
+
+.grid-tree-canvas.edit-mode {
+    overflow: auto !important;
+    cursor: default !important;
+}
+
+/* Ensure SVG doesn't constrain scrolling */
+.grid-tree-canvas svg {
+    display: block;
+    min-width: 100%;
+    min-height: 100%;
+}
+
+
+/* Fullscreen Story Modal Styles */
+.fullscreen-modal {
+    z-index: 3000;
+    background-color: rgba(0,0,0,0.8);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+
+.fullscreen-modal-content {
+    background: #4a4a4a;
+    margin: 0;
+    padding: 0;
+    border-radius: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    box-shadow: none;
+    border: none;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+.fullscreen-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 30px;
+    background: rgba(46,125,50,0.05);
+    border-bottom: 2px solid rgba(46,125,50,0.1);
+    flex-shrink: 0;
+    height: 80px; /* Fixed height to prevent layout shifts */
+    min-height: 80px;
+    max-height: 80px;
+}
+
+.header-spacer {
+    flex: 1;
+}
+
+/* Story title section - original colors */
+.story-title-section {
+    background: rgba(255,255,255,0.9);
+    padding: 25px 30px;
+    border-radius: 12px;
+    border: 2px solid rgba(46,125,50,0.1);
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.story-title-section h1 {
+    color: #2E7D32;
+    margin: 0;
+    font-size: 28px;
+    font-weight: bold;
+    line-height: 1.3;
+}
+
+
+/* Story photo container - original colors */
+.story-photo-container {
+    background: rgba(255,255,255,0.9);
+    padding: 25px;
+    border-radius: 12px;
+    border: 2px solid rgba(46,125,50,0.1);
+    margin-bottom: 25px;
+    text-align: center;
+}
+
+.story-photo-container .fullscreen-story-photo {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 10px;
+    box-shadow: 0 8px 20px rgba(0,0,0,0.15);
+    object-fit: contain;
+}
+
+.fullscreen-header h2 {
+    color: #2E7D32;
+    margin: 0;
+    font-size: 24px;
+    flex: 1;
+    text-align: center;
+    padding: 0 20px;
+}
+
+.nav-btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.back-btn {
+    background: linear-gradient(45deg, #4CAF50, #2E7D32);
+    color: white;
+}
+
+.back-btn:hover {
+    background: linear-gradient(45deg, #45a049, #1B5E20);
+    transform: translateY(-2px);
+}
+
+.fullscreen-close {
+    background: none;
+    border: none;
+    font-size: 32px;
+    color: #666;
+    cursor: pointer;
+    transition: color 0.3s ease;
+    padding: 5px;
+    line-height: 1;
+}
+
+.fullscreen-close:hover {
+    color: #2E7D32;
+}
+
+.story-title-section,
+.story-photo-container,
+.story-metadata,
+.story-questions-section,
+.story-text-section {
+    margin-bottom: 25px;
+    contain: layout style; /* Isolate layout changes */
+}
+
+/* Scrollable body */
+.fullscreen-body {
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    position: relative;
+    height: calc(100vh - 80px); /* Exact height calculation */
+    min-height: calc(100vh - 80px);
+    max-height: calc(100vh - 80px);
+}
+
+.fullscreen-body-inner {
+    padding: 30px;
+    max-width: 800px;
+    margin: 0 auto;
+    width: 100%;
+    min-height: 100%; /* Ensure content fills container */
+}
+
+.fullscreen-body::-webkit-scrollbar {
+    width: 12px;
+}
+
+.fullscreen-body::-webkit-scrollbar-track {
+    background: rgba(255,255,255,0.1);
+    border-radius: 6px;
+}
+
+.fullscreen-body::-webkit-scrollbar-thumb {
+    background: rgba(46,125,50,0.3);
+    border-radius: 6px;
+}
+
+.fullscreen-body::-webkit-scrollbar-thumb:hover {
+    background: rgba(46,125,50,0.5);
+}
+
+/* Story photo section */
+.story-photo-section {
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.fullscreen-story-photo {
+    max-width: 100%;
+    max-height: 400px;
+    border-radius: 15px;
+    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+    object-fit: cover;
+}
+
+/* Story metadata - original colors */
+.story-metadata {
+    margin-bottom: 25px;
+    padding: 25px 30px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    border: 2px solid rgba(46,125,50,0.1);
+}
+
+.metadata-label {
+    font-weight: bold;
+    color: #2E7D32;
+}
+
+.metadata-value {
+    color: #666;
+    font-weight: 500;
+}
+
+.metadata-separator {
+    color: #ccc;
+}
+
+.metadata-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.metadata-row:last-child {
+    margin-bottom: 0;
+}
+
+.metadata-tag {
+    padding: 6px 12px;
+    border-radius: 15px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+}
+
+.theme-tag {
+    background: linear-gradient(45deg, #e3f2fd, #bbdefb);
+    color: #1976d2;
+}
+
+.period-tag {
+    background: linear-gradient(45deg, #fff3e0, #ffcc80);
+    color: #f57c00;
+}
+
+.year-tag {
+    background: linear-gradient(45deg, #e8f5e9, #c8e6c9);
+    color: #2e7d32;
+}
+
+
+.metadata-separator {
+    color: #ccc;
+}
+
+/* Story questions section - original colors */
+.story-questions-section {
+    margin-bottom: 25px;
+    background: linear-gradient(135deg, #f0f8ff 0%, #e8f4f8 100%);
+    padding: 25px 30px;
+    border-radius: 12px;
+    border: 2px solid rgba(46,125,50,0.1);
+}
+
+.story-questions-section h4 {
+    color: #2E7D32;
+    margin-bottom: 20px;
+    font-size: 18px;
+}
+
+.question-answer-pair {
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid rgba(46,125,50,0.1);
+}
+
+.question-answer-pair:last-child {
+    margin-bottom: 0;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+.fullscreen-question {
+    font-weight: bold;
+    color: #2E7D32;
+    margin-bottom: 8px;
+    font-size: 16px;
+    line-height: 1.4;
+}
+
+.fullscreen-answer {
+    color: #333;
+    line-height: 1.6;
+    padding: 12px 15px;
+    background: rgba(255,255,255,0.8);
+    border-radius: 8px;
+    border-left: 3px solid rgba(46,125,50,0.3);
+    font-style: italic;
+}
+
+/* Story text section - original colors */
+.story-text-section {
+    background: rgba(255,255,255,0.9);
+    padding: 30px;
+    border-radius: 12px;
+    border: 2px solid rgba(46,125,50,0.1);
+    margin-bottom: 20px;
+    max-width: 100%;
+    overflow: hidden;
+    word-wrap: break-word;
+}
+
+.story-full-text {
+    line-height: 1.8;
+    color: #333;
+    font-size: 16px;
+    word-wrap: break-word;
+    word-break: break-word;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    contain: layout; /* Prevent text from affecting parent layout */
+}
+
+/* Make story cards clickable buttons */
+.story-item {
+    max-width: 100%;
+    overflow: hidden;
+    word-wrap: break-word;
+    word-break: break-word;
+}
+
+.story-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.12);
+    border-color: rgba(46,125,50,0.2);
+}
+
+.story-item:active {
+    transform: translateY(-1px);
+}
+
+/* Square thumbnail for story preview images */
+.story-preview-image {
+    width: 80px;
+    height: 80px;
+    object-fit: cover;
+    border-radius: 8px;
+    float: right;
+    margin-left: 15px;
+    margin-bottom: 10px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+    .story-title-section {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .story-title-section h1 {
+        font-size: 22px;
+    }
+    
+    .story-photo-container {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .story-metadata {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .story-questions-section {
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .story-text-section {
+        padding: 20px;
+        margin-bottom: 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    .fullscreen-header {
+        padding: 10px 15px;
+    }
+    
+    .fullscreen-header h2 {
+        font-size: 16px;
+    }
+    
+    .nav-btn {
+        padding: 6px 10px;
+        font-size: 12px;
+    }
+    
+    .fullscreen-body {
+        padding: 15px 10px;
+    }
+    
+    .story-preview-image {
+        width: 50px;
+        height: 50px;
+        float: none;
+        display: block;
+        margin: 0 auto 10px auto;
+    }
+}
+

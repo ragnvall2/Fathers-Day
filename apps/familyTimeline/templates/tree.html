@@ -60,6 +60,7 @@
         </div>
     </div>
 
+
     <!-- Add Person Modal -->
     <div id="addPersonModal" class="modal">
         <div class="modal-content">
@@ -137,6 +138,86 @@
                     <button type="button" class="btn secondary" onclick="document.getElementById('addPersonModal').style.display='none'">Cancel</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+
+    <!-- Fullscreen Story Modal -->
+    <div id="fullStoryModal" class="modal fullscreen-modal">
+        <div class="fullscreen-modal-content">
+            <!-- Header with navigation (no title here) -->
+            <div class="fullscreen-header">
+                <button id="backToStories" class="nav-btn back-btn">← Back to Stories</button>
+                <div class="header-spacer"></div>
+                <button class="close fullscreen-close">×</button>
+            </div>
+            
+            <!-- Story content -->
+            <div class="fullscreen-body">
+                <div class="fullscreen-body-inner">
+                    <!-- Story title section -->
+                    <div class="story-title-section">
+                        <h1 id="fullStoryTitle">Story Title</h1>
+                    </div>
+                
+                <!-- Story photo section -->
+                <div id="fullStoryPhotoSection" class="story-photo-container">
+                    <img id="fullStoryPhoto" class="fullscreen-story-photo" src="" alt="Story Photo">
+                </div>
+                
+                <!-- Story metadata -->
+                <div class="story-metadata">
+                    <div class="metadata-row">
+                        <span id="fullStoryTheme" class="metadata-tag theme-tag"></span>
+                        <span id="fullStoryPeriod" class="metadata-tag period-tag"></span>
+                        <span id="fullStoryYear" class="metadata-tag year-tag"></span>
+                    </div>
+                    <div class="metadata-row">
+                        <span class="metadata-label">Author:</span>
+                        <span id="fullStoryAuthor" class="metadata-value"></span>
+                        <span class="metadata-separator">•</span>
+                        <span id="fullStoryDate" class="metadata-value"></span>
+                    </div>
+                </div>
+                
+                <!-- Story questions (if any) -->
+                <div id="fullStoryQuestions" class="story-questions-section">
+                    <!-- Questions will be populated here -->
+                </div>
+                
+                <!-- Story text -->
+                <div class="story-text-section">
+                    <div id="fullStoryText" class="story-full-text"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <!-- Settings Panel -->
+    <div id="settingsPanel" class="settings-panel">
+        <div class="settings-header">
+            <h3>⚙️ Tree Settings</h3>
+            <button id="closeSettings" class="close-settings">×</button>
+        </div>
+        <div class="settings-content">
+            <div class="setting-group">
+                <label for="childLineColor">Child Connection Lines</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="childLineColor" value="#4CAF50">
+                    <span class="color-preview" id="childColorPreview"></span>
+                </div>
+            </div>
+            <div class="setting-group">
+                <label for="spouseLineColor">Spouse Connection Lines</label>
+                <div class="color-input-wrapper">
+                    <input type="color" id="spouseLineColor" value="#2196F3">
+                    <span class="color-preview" id="spouseColorPreview"></span>
+                </div>
+            </div>
+            <div class="setting-actions">
+                <button id="resetColors" class="btn secondary">Reset to Default</button>
+                <button id="saveSettings" class="btn primary">Save Settings</button>
+            </div>
         </div>
     </div>
 
@@ -590,6 +671,7 @@
         console.log('window.currentUser:', window.currentUser);
         console.log('window.familyCode:', window.familyCode);
     </script>
+    
     <script src="[[=URL('static', 'js/gridFamilyTree.js')]]"></script>
     [[pass]]
 </body>
